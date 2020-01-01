@@ -1,0 +1,27 @@
+TOPIC
+    about_PSFortigateConfig
+
+SHORT DESCRIPTION
+    Fortigate config parser.
+
+LONG DESCRIPTION
+    This module will parse the Fortigate configuration into a hash table
+
+EXAMPLES
+    Open and parse a Fortigate config file, display hostname value
+    
+    PS C:\>$Config = New-PSFortigateConfig -Params @('C:\firewall.conf')
+    PS C:\>$Config.Config['global']['system global']['hostname']
+
+
+    Open and parse a Fortigate config file using UTF8 encoding
+
+    PS C:\>$Config = New-PSFortigateConfig -Params @('C:\firewall.conf', [System.Text.Encoding]::UTF8)
+    PS C:\>$Config.Config['global']['system global']['hostname']
+
+
+KEYWORDS
+    Fortigate Fortinet Firewall
+
+SEE ALSO
+    New-PSFortigateConfig

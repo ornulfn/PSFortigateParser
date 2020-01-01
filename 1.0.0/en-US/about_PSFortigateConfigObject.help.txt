@@ -1,0 +1,29 @@
+TOPIC
+    about_PSFortigateConfigObject
+
+SHORT DESCRIPTION
+    Fortigate config as Powershell objects.
+
+LONG DESCRIPTION
+    This module will create Powershell objects of the Fortigate configuration.
+
+EXAMPLES
+    Open and parse a Fortigate config file, display rule 1 in root vdom
+    
+    PS C:\>$Config = New-PSFortigateConfigObject -Params @('C:\firewall.conf')
+    PS C:\>$Config.getPolicy() | Where-Object { $_.vdom -eq 'root' -and $_.sequence -eq 1 }
+
+
+    Open and parse a Fortigate config file using UTF8 encoding, display rule 1 in root vdom
+
+    PS C:\>$Config = New-PSFortigateConfigObject -Params @('C:\firewall.conf', [System.Text.Encoding]::UTF8)
+    PS C:\>$Config.getPolicy() | Where-Object { $_.vdom -eq 'root' -and $_.sequence -eq 1 }
+
+
+KEYWORDS
+    Fortigate Fortinet Firewall
+
+SEE ALSO
+    about_PSFortigateConfig
+    New-PSFortigateConfigObject
+    New-PSFortigateConfig

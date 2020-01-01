@@ -1,0 +1,33 @@
+TOPIC
+    about_PSFortigateReport
+
+SHORT DESCRIPTION
+    Fortigate config as CSV reports.
+
+LONG DESCRIPTION
+    This module will create CSV reports of the Fortigate configuration. System regional settings determine CSV delimiter to be used. CSV files are saved using same encoding as the config file.
+
+    To open created CSV files in Excel, save files using .csv extension - double click on file to open it in Excel (Excel import wizard does not correctly parse multivalued cells using linefeed as separator).
+
+EXAMPLES
+    Open and parse a Fortigate config file, save policy report as CSV. 
+    
+    PS C:\>$Config = New-PSFortigateReport -Params @('C:\firewall.conf')
+    PS C:\>$Config.savePolicyReport('C:\firewall-policy.csv')
+
+
+    Open and parse a Fortigate config file using UTF8 encoding, save policy report as CSV.
+
+    PS C:\>$Config = New-PSFortigateReport -Params @('C:\firewall.conf', [System.Text.Encoding]::UTF8)
+    PS C:\>$Config.savePolicyReport('C:\firewall-policy.csv')
+
+
+KEYWORDS
+    Fortigate Fortinet Firewall
+
+SEE ALSO
+    about_PSFortigateConfigObject
+    about_PSFortigateConfig
+    New-PSFortigateReport
+    New-PSFortigateConfigObject
+    New-PSFortigateConfig
