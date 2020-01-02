@@ -20,4 +20,6 @@ Basic usage:
     $Config.savePolicyReport('C:\firewall-policy.csv')
     $Config.saveAddressReport('C:\firewall-address.csv')
     $Config.saveAddressGroupReport('C:\firewall-addressgroup.csv')
+    $Config.saveServiceReport('C:\firewall-service.csv')
+    $Config.saveServiceGroupReport('C:\firewall-servicegroup.csv')
 ```

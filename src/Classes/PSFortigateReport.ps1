@@ -4,6 +4,8 @@ Class PSFortigateReport : PSFortigateConfigObject {
     Hidden [System.Array]$PolicyReportTemplate
     Hidden [System.Array]$AddressReportTemplate
     Hidden [System.Array]$AddressGroupReportTemplate
+    Hidden [System.Array]$ServiceReportTemplate
+    Hidden [System.Array]$ServiceGroupReportTemplate
 
     #endregion
     #region Constructors
@@ -15,6 +17,8 @@ Class PSFortigateReport : PSFortigateConfigObject {
         $this.setPolicyReportTemplate()
         $this.setAddressReportTemplate()
         $this.setAddressGroupReportTemplate()
+        $this.setServiceReportTemplate()
+        $this.setServiceGroupReportTemplate()
     }
 
     #endregion
@@ -191,6 +195,104 @@ Class PSFortigateReport : PSFortigateConfigObject {
         $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
         $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
         $this.getAddressGroupReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setServiceReportTemplate()
+    [void]setServiceReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default service report template'
+        # Columns to report (in listed order)
+        $this.ServiceReportTemplate = @(
+            "vdom",
+            "name",
+            "visibility",
+            "proxy",
+            "category",
+            "protocol",
+            "protocol-number",
+            @{Name="tcp-portrange"; Expression={ ([array]$_."tcp-portrange") -join [char]10 }},
+            @{Name="udp-portrange"; Expression={ ([array]$_."udp-portrange") -join [char]10 }},
+            "icmptype",
+            "comment"
+        )
+        
+    }
+
+    #endregion
+    #region [void]setServiceReportTemplate($Path)
+    [void]setServiceReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load service report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.ServiceReportTemplate = $Template
+    }
+
+    #endregion
+    #region getServiceReport()
+    [PsCustomObject[]]getServiceReport() {
+        return $this.getService() | Select-Object -Property $this.ServiceReportTemplate
+    }
+
+    #endregion
+    #region saveServiceReport($Path)
+    [void]saveServiceReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getServiceReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setServiceGroupReportTemplate()
+    [void]setServiceGroupReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default service group report template'
+        # Columns to report (in listed order)
+        $this.ServiceGroupReportTemplate = @(
+            "vdom",
+            "name",
+            @{Name="member"; Expression={ ([array]$_.member) -join [char]10 }}
+        )
+        
+    }
+
+    #endregion
+    #region [void]setServiceGroupReportTemplate($Path)
+    [void]setServiceGroupReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load service group report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.ServiceGroupReportTemplate = $Template
+    }
+
+    #endregion
+    #region getServiceGroupReport()
+    [PsCustomObject[]]getServiceGroupReport() {
+        return $this.getServiceGroup() | Select-Object -Property $this.ServiceGroupReportTemplate
+    }
+
+    #endregion
+    #region saveServiceGroupReport($Path)
+    [void]saveServiceGroupReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getServiceGroupReport() | `
             ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
             ForEach-Object { $StreamWriter.WriteLine($_) }
         $StreamWriter.Close()

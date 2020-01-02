@@ -8,6 +8,7 @@ Class PSFortigateConfig : System.IDisposable {
     Hidden [System.IO.StreamReader]$StreamReader
     Hidden [System.Boolean]$BreakTopLevel = $false
     Hidden [System.Boolean]$inPolicySection = $false
+    Hidden [System.Boolean]$inServiceSection = $false
     Hidden [System.Int32]$PolicySequence
 
     [System.Collections.Hashtable]$Config
@@ -122,6 +123,8 @@ Class PSFortigateConfig : System.IDisposable {
                     if ($Matches.section -eq "firewall policy") {
                         $this.inPolicySection = $true
                         $this.PolicySequence = 0
+                    } elseif ($Matches.section -eq "firewall service custom") {
+                        $this.inServiceSection = $true
                     }
                     $Section[$Matches.section] = $this.ReadConfigSection($Matches.section, 'end')
                 } else {
@@ -138,6 +141,8 @@ Class PSFortigateConfig : System.IDisposable {
                 # Special handling for vdom - end without next
                 if ($Matches.EndMarker -eq "end" -and $this.inPolicySection) {
                     $this.inPolicySection = $false
+                } elseif ($Matches.EndMarker -eq "end" -and $this.inServiceSection) {
+                    $this.inServiceSection = $false
                 }
                 if ($Matches.EndMarker -eq "end" -and $EndMarker -eq "next") {
                     $this.BreakTopLevel = $true
@@ -154,12 +159,19 @@ Class PSFortigateConfig : System.IDisposable {
                 }
 
                 # Remove double quotes - use array if multi-valued
-                $PropertyValue = $Matches.Value -split "`"\s+`""
-                if ($PropertyValue.Count -gt 1) {
-                    $PropertyValue[0] = $PropertyValue[0] -replace "^`"",""
-                    $PropertyValue[-1] = $PropertyValue[-1] -replace "`"\s*$",""
+                if ($this.inServiceSection -and $PropertyKey -like "*-portrange") {
+                    $PropertyValue = $Matches.Value -split "\s+"
+                    if ($PropertyValue.Count -eq 1) {
+                        $PropertyValue = $PropertyValue -as [System.String]
+                    }
                 } else {
-                    $PropertyValue = $PropertyValue -replace "`"","" -as [System.String]
+                    $PropertyValue = $Matches.Value -split "`"\s+`""
+                    if ($PropertyValue.Count -gt 1) {
+                        $PropertyValue[0] = $PropertyValue[0] -replace "^`"",""
+                        $PropertyValue[-1] = $PropertyValue[-1] -replace "`"\s*$",""
+                    } else {
+                        $PropertyValue = $PropertyValue -replace "`"","" -as [System.String]
+                    }
                 }
                 $Section[$PropertyKey] = $PropertyValue
             }

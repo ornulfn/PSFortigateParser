@@ -4,6 +4,8 @@ Class PSFortigateConfigObject : PSFortigateConfig {
     Hidden [PSCustomObject]$PolicyTemplate
     Hidden [PSCustomObject]$AddressTemplate
     Hidden [PSCustomObject]$AddressGroupTemplate
+    Hidden [PSCustomObject]$ServiceTemplate
+    Hidden [PSCustomObject]$ServiceGroupTemplate
 
     #endregion
     #region Constructors
@@ -15,6 +17,8 @@ Class PSFortigateConfigObject : PSFortigateConfig {
         $this.setPolicyTemplate()
         $this.setAddressTemplate()
         $this.setAddressGroupTemplate()
+        $this.setServiceTemplate()
+        $this.setServiceGroupTemplate()
     }
 
     #endregion
@@ -257,7 +261,7 @@ Class PSFortigateConfigObject : PSFortigateConfig {
     }
 
     #endregion
-    #region [void]setAddressTemplate([System.String[]]$Template)
+    #region [void]setAddressGroupTemplate([System.String[]]$Template)
     [void]setAddressGroupTemplate(
         [System.String[]]$Template
     ) {
@@ -322,6 +326,150 @@ Class PSFortigateConfigObject : PSFortigateConfig {
                 }
             }
             return $cAddressGroups
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
+    }
+
+    #endregion
+    #region [void]setServiceTemplate([System.String[]]$Template)
+    [void]setServiceTemplate(
+        [System.String[]]$Template
+    ) {
+        # Columns are displayed according to order in template
+        $Options = [Ordered]@{ vdom = $null; name = $null }
+        foreach ($Line in $Template) {
+            if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
+                $Options.add($Matches.Option, $null)
+            }
+        }
+        $this.ServiceTemplate = New-Object -TypeName "PSCustomObject" -Property $Options
+    }
+
+    #endregion
+    #region [void]setServiceTemplate()
+    [void]setServiceTemplate() {
+        Write-Debug 'PSFortigateConfigObject: Set default service template'
+        $Template = @"
+    edit "deleteme"
+        set proxy "deleteme"
+        set category "deleteme"
+        set protocol "deleteme"
+        set protocol-number "deleteme"
+        set visibility "deleteme"
+        set tcp-portrange "deleteme"
+        set udp-portrange "deleteme"
+        set icmptype "deleteme"
+        set comment "deleteme"
+    next
+"@.Split([Environment]::NewLine)
+        $this.setServiceTemplate($Template)
+    }
+
+    #endregion
+    #region [void]setServiceTemplate($Path)
+    [void]setServiceTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateConfigObject: Load service template from {0}' -f $Path)
+        $Template = $this.ReadTextFile($Path)
+        $this.setServiceTemplate($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getService()
+    [PSCustomObject[]]getService() {
+        $cServices = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['firewall service custom'].count -gt 0) {
+                    foreach ($Service in $vdom.Value['firewall service custom'].GetEnumerator()) {
+                        $oService = $this.ServiceTemplate.PsObject.Copy()
+                        $oService.vdom = $vdom.Name
+                        $oService.name = $Service.Name
+
+                        foreach ($ServiceOption in $Service.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} Service {1} Option {2}' -f $vdom.Name, $Service.Name, $ServiceOption.Name)
+                                $oService.($ServiceOption.Name) = $ServiceOption.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} Service {1} Option {2} - option not found in service template' -f $vdom.Name, $Service.Name, $ServiceOption.Name)
+                            }
+                        }
+                        $cServices.Add($oService)
+                    }
+                }
+            }
+            return $cServices
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
+    }
+
+    #endregion
+    #region [void]setServiceGroupTemplate([System.String[]]$Template)
+    [void]setServiceGroupTemplate(
+        [System.String[]]$Template
+    ) {
+        # Columns are displayed according to order in template
+        $Options = [Ordered]@{ vdom = $null; name = $null }
+        foreach ($Line in $Template) {
+            if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
+                $Options.add($Matches.Option, $null)
+            }
+        }
+        $this.ServiceGroupTemplate = New-Object -TypeName "PSCustomObject" -Property $Options
+    }
+
+    #endregion
+    #region [void]setServiceGroupTemplate()
+    [void]setServiceGroupTemplate() {
+        Write-Debug 'PSFortigateConfigObject: Set default service group template'
+        $Template = @"
+    edit "deleteme"
+       set member "deleteme"
+    next
+"@.Split([Environment]::NewLine)
+        $this.setServiceGroupTemplate($Template)
+    }
+
+    #endregion
+    #region [void]setServiceGroupTemplate($Path)
+    [void]setServiceGroupTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateConfigObject: Load service group template from {0}' -f $Path)
+        $Template = $this.ReadTextFile($Path)
+        $this.setServiceGroupTemplate($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getServiceGroup()
+    [PSCustomObject[]]getServiceGroup() {
+        $cServiceGroups = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['firewall service group'].count -gt 0) {
+                    foreach ($ServiceGroup in $vdom.Value['firewall service group'].GetEnumerator()) {
+                        $oServiceGroup = $this.ServiceGroupTemplate.PsObject.Copy()
+                        $oServiceGroup.vdom = $vdom.Name
+                        $oServiceGroup.name = $ServiceGroup.Name
+
+                        foreach ($ServiceGroupOption in $ServiceGroup.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} ServiceGroup {1} Option {2}' -f $vdom.Name, $ServiceGroup.Name, $ServiceGroupOption.Name)
+                                $oServiceGroup.($ServiceGroupOption.Name) = $ServiceGroupOption.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} ServiceGroup {1} Option {2} - option not found in service group template' -f $vdom.Name, $ServiceGroup.Name, $ServiceGroupOption.Name)
+                            }
+                        }
+                        $cServiceGroups.Add($oServiceGroup)
+                    }
+                }
+            }
+            return $cServiceGroups
         }
         Write-Debug ('PSFortigateConfigObject: No vDom found')
         return $null

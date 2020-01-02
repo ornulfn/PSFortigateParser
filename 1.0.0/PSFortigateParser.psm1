@@ -1,4 +1,4 @@
-﻿#Generated at 01/02/2020 16:34:18 by Ørnulf Nielsen
+﻿#Generated at 01/02/2020 17:48:39 by Ørnulf Nielsen
 #region Class PSFortigateConfig : System.IDisposable
 Class PSFortigateConfig : System.IDisposable {
     #region Properties
@@ -9,6 +9,7 @@ Class PSFortigateConfig : System.IDisposable {
     Hidden [System.IO.StreamReader]$StreamReader
     Hidden [System.Boolean]$BreakTopLevel = $false
     Hidden [System.Boolean]$inPolicySection = $false
+    Hidden [System.Boolean]$inServiceSection = $false
     Hidden [System.Int32]$PolicySequence
 
     [System.Collections.Hashtable]$Config
@@ -123,6 +124,8 @@ Class PSFortigateConfig : System.IDisposable {
                     if ($Matches.section -eq "firewall policy") {
                         $this.inPolicySection = $true
                         $this.PolicySequence = 0
+                    } elseif ($Matches.section -eq "firewall service custom") {
+                        $this.inServiceSection = $true
                     }
                     $Section[$Matches.section] = $this.ReadConfigSection($Matches.section, 'end')
                 } else {
@@ -139,6 +142,8 @@ Class PSFortigateConfig : System.IDisposable {
                 # Special handling for vdom - end without next
                 if ($Matches.EndMarker -eq "end" -and $this.inPolicySection) {
                     $this.inPolicySection = $false
+                } elseif ($Matches.EndMarker -eq "end" -and $this.inServiceSection) {
+                    $this.inServiceSection = $false
                 }
                 if ($Matches.EndMarker -eq "end" -and $EndMarker -eq "next") {
                     $this.BreakTopLevel = $true
@@ -155,12 +160,19 @@ Class PSFortigateConfig : System.IDisposable {
                 }
 
                 # Remove double quotes - use array if multi-valued
-                $PropertyValue = $Matches.Value -split "`"\s+`""
-                if ($PropertyValue.Count -gt 1) {
-                    $PropertyValue[0] = $PropertyValue[0] -replace "^`"",""
-                    $PropertyValue[-1] = $PropertyValue[-1] -replace "`"\s*$",""
+                if ($this.inServiceSection -and $PropertyKey -like "*-portrange") {
+                    $PropertyValue = $Matches.Value -split "\s+"
+                    if ($PropertyValue.Count -eq 1) {
+                        $PropertyValue = $PropertyValue -as [System.String]
+                    }
                 } else {
-                    $PropertyValue = $PropertyValue -replace "`"","" -as [System.String]
+                    $PropertyValue = $Matches.Value -split "`"\s+`""
+                    if ($PropertyValue.Count -gt 1) {
+                        $PropertyValue[0] = $PropertyValue[0] -replace "^`"",""
+                        $PropertyValue[-1] = $PropertyValue[-1] -replace "`"\s*$",""
+                    } else {
+                        $PropertyValue = $PropertyValue -replace "`"","" -as [System.String]
+                    }
                 }
                 $Section[$PropertyKey] = $PropertyValue
             }
@@ -178,6 +190,8 @@ Class PSFortigateConfigObject : PSFortigateConfig {
     Hidden [PSCustomObject]$PolicyTemplate
     Hidden [PSCustomObject]$AddressTemplate
     Hidden [PSCustomObject]$AddressGroupTemplate
+    Hidden [PSCustomObject]$ServiceTemplate
+    Hidden [PSCustomObject]$ServiceGroupTemplate
 
     #endregion
     #region Constructors
@@ -189,6 +203,8 @@ Class PSFortigateConfigObject : PSFortigateConfig {
         $this.setPolicyTemplate()
         $this.setAddressTemplate()
         $this.setAddressGroupTemplate()
+        $this.setServiceTemplate()
+        $this.setServiceGroupTemplate()
     }
 
     #endregion
@@ -431,7 +447,7 @@ Class PSFortigateConfigObject : PSFortigateConfig {
     }
 
     #endregion
-    #region [void]setAddressTemplate([System.String[]]$Template)
+    #region [void]setAddressGroupTemplate([System.String[]]$Template)
     [void]setAddressGroupTemplate(
         [System.String[]]$Template
     ) {
@@ -502,6 +518,150 @@ Class PSFortigateConfigObject : PSFortigateConfig {
     }
 
     #endregion
+    #region [void]setServiceTemplate([System.String[]]$Template)
+    [void]setServiceTemplate(
+        [System.String[]]$Template
+    ) {
+        # Columns are displayed according to order in template
+        $Options = [Ordered]@{ vdom = $null; name = $null }
+        foreach ($Line in $Template) {
+            if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
+                $Options.add($Matches.Option, $null)
+            }
+        }
+        $this.ServiceTemplate = New-Object -TypeName "PSCustomObject" -Property $Options
+    }
+
+    #endregion
+    #region [void]setServiceTemplate()
+    [void]setServiceTemplate() {
+        Write-Debug 'PSFortigateConfigObject: Set default service template'
+        $Template = @"
+    edit "deleteme"
+        set proxy "deleteme"
+        set category "deleteme"
+        set protocol "deleteme"
+        set protocol-number "deleteme"
+        set visibility "deleteme"
+        set tcp-portrange "deleteme"
+        set udp-portrange "deleteme"
+        set icmptype "deleteme"
+        set comment "deleteme"
+    next
+"@.Split([Environment]::NewLine)
+        $this.setServiceTemplate($Template)
+    }
+
+    #endregion
+    #region [void]setServiceTemplate($Path)
+    [void]setServiceTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateConfigObject: Load service template from {0}' -f $Path)
+        $Template = $this.ReadTextFile($Path)
+        $this.setServiceTemplate($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getService()
+    [PSCustomObject[]]getService() {
+        $cServices = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['firewall service custom'].count -gt 0) {
+                    foreach ($Service in $vdom.Value['firewall service custom'].GetEnumerator()) {
+                        $oService = $this.ServiceTemplate.PsObject.Copy()
+                        $oService.vdom = $vdom.Name
+                        $oService.name = $Service.Name
+
+                        foreach ($ServiceOption in $Service.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} Service {1} Option {2}' -f $vdom.Name, $Service.Name, $ServiceOption.Name)
+                                $oService.($ServiceOption.Name) = $ServiceOption.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} Service {1} Option {2} - option not found in service template' -f $vdom.Name, $Service.Name, $ServiceOption.Name)
+                            }
+                        }
+                        $cServices.Add($oService)
+                    }
+                }
+            }
+            return $cServices
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
+    }
+
+    #endregion
+    #region [void]setServiceGroupTemplate([System.String[]]$Template)
+    [void]setServiceGroupTemplate(
+        [System.String[]]$Template
+    ) {
+        # Columns are displayed according to order in template
+        $Options = [Ordered]@{ vdom = $null; name = $null }
+        foreach ($Line in $Template) {
+            if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
+                $Options.add($Matches.Option, $null)
+            }
+        }
+        $this.ServiceGroupTemplate = New-Object -TypeName "PSCustomObject" -Property $Options
+    }
+
+    #endregion
+    #region [void]setServiceGroupTemplate()
+    [void]setServiceGroupTemplate() {
+        Write-Debug 'PSFortigateConfigObject: Set default service group template'
+        $Template = @"
+    edit "deleteme"
+       set member "deleteme"
+    next
+"@.Split([Environment]::NewLine)
+        $this.setServiceGroupTemplate($Template)
+    }
+
+    #endregion
+    #region [void]setServiceGroupTemplate($Path)
+    [void]setServiceGroupTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateConfigObject: Load service group template from {0}' -f $Path)
+        $Template = $this.ReadTextFile($Path)
+        $this.setServiceGroupTemplate($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getServiceGroup()
+    [PSCustomObject[]]getServiceGroup() {
+        $cServiceGroups = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['firewall service group'].count -gt 0) {
+                    foreach ($ServiceGroup in $vdom.Value['firewall service group'].GetEnumerator()) {
+                        $oServiceGroup = $this.ServiceGroupTemplate.PsObject.Copy()
+                        $oServiceGroup.vdom = $vdom.Name
+                        $oServiceGroup.name = $ServiceGroup.Name
+
+                        foreach ($ServiceGroupOption in $ServiceGroup.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} ServiceGroup {1} Option {2}' -f $vdom.Name, $ServiceGroup.Name, $ServiceGroupOption.Name)
+                                $oServiceGroup.($ServiceGroupOption.Name) = $ServiceGroupOption.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} ServiceGroup {1} Option {2} - option not found in service group template' -f $vdom.Name, $ServiceGroup.Name, $ServiceGroupOption.Name)
+                            }
+                        }
+                        $cServiceGroups.Add($oServiceGroup)
+                    }
+                }
+            }
+            return $cServiceGroups
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
+    }
+
+    #endregion
 }
 
 #endregion
@@ -511,6 +671,8 @@ Class PSFortigateReport : PSFortigateConfigObject {
     Hidden [System.Array]$PolicyReportTemplate
     Hidden [System.Array]$AddressReportTemplate
     Hidden [System.Array]$AddressGroupReportTemplate
+    Hidden [System.Array]$ServiceReportTemplate
+    Hidden [System.Array]$ServiceGroupReportTemplate
 
     #endregion
     #region Constructors
@@ -522,6 +684,8 @@ Class PSFortigateReport : PSFortigateConfigObject {
         $this.setPolicyReportTemplate()
         $this.setAddressReportTemplate()
         $this.setAddressGroupReportTemplate()
+        $this.setServiceReportTemplate()
+        $this.setServiceGroupReportTemplate()
     }
 
     #endregion
@@ -698,6 +862,104 @@ Class PSFortigateReport : PSFortigateConfigObject {
         $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
         $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
         $this.getAddressGroupReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setServiceReportTemplate()
+    [void]setServiceReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default service report template'
+        # Columns to report (in listed order)
+        $this.ServiceReportTemplate = @(
+            "vdom",
+            "name",
+            "visibility",
+            "proxy",
+            "category",
+            "protocol",
+            "protocol-number",
+            @{Name="tcp-portrange"; Expression={ ([array]$_."tcp-portrange") -join [char]10 }},
+            @{Name="udp-portrange"; Expression={ ([array]$_."udp-portrange") -join [char]10 }},
+            "icmptype",
+            "comment"
+        )
+        
+    }
+
+    #endregion
+    #region [void]setServiceReportTemplate($Path)
+    [void]setServiceReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load service report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.ServiceReportTemplate = $Template
+    }
+
+    #endregion
+    #region getServiceReport()
+    [PsCustomObject[]]getServiceReport() {
+        return $this.getService() | Select-Object -Property $this.ServiceReportTemplate
+    }
+
+    #endregion
+    #region saveServiceReport($Path)
+    [void]saveServiceReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getServiceReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setServiceGroupReportTemplate()
+    [void]setServiceGroupReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default service group report template'
+        # Columns to report (in listed order)
+        $this.ServiceGroupReportTemplate = @(
+            "vdom",
+            "name",
+            @{Name="member"; Expression={ ([array]$_.member) -join [char]10 }}
+        )
+        
+    }
+
+    #endregion
+    #region [void]setServiceGroupReportTemplate($Path)
+    [void]setServiceGroupReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load service group report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.ServiceGroupReportTemplate = $Template
+    }
+
+    #endregion
+    #region getServiceGroupReport()
+    [PsCustomObject[]]getServiceGroupReport() {
+        return $this.getServiceGroup() | Select-Object -Property $this.ServiceGroupReportTemplate
+    }
+
+    #endregion
+    #region saveServiceGroupReport($Path)
+    [void]saveServiceGroupReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getServiceGroupReport() | `
             ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
             ForEach-Object { $StreamWriter.WriteLine($_) }
         $StreamWriter.Close()
