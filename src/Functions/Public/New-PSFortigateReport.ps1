@@ -27,9 +27,13 @@ function New-PSFortigateReport {
         .EXAMPLE
             PS C:\>$Config = New-PSFortigateReport -Params @('C:\firewall.conf')
             PS C:\>$Config.savePolicyReport('C:\firewall-policy.csv')
+            PS C:\>$Config.saveAddressReport('C:\firewall-address.csv')
+            PS C:\>$Config.saveAddressGroupReport('C:\firewall-addressgroup.csv')
         .EXAMPLE
             PS C:\>$Config = New-PSFortigateReport -Params @('C:\firewall.conf', [System.Text.Encoding]::UTF8)
             PS C:\>$Config.savePolicyReport('C:\firewall-policy.csv')
+            PS C:\>$Config.saveAddressReport('C:\firewall-address.csv')
+            PS C:\>$Config.saveAddressGroupReport('C:\firewall-addressgroup.csv')
         .LINK
             about_PSFortigateReport
     #>

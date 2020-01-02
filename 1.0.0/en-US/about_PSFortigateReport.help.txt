@@ -10,16 +10,20 @@ LONG DESCRIPTION
     To open created CSV files in Excel, save files using .csv extension - double click on file to open it in Excel (Excel import wizard does not correctly parse multivalued cells using linefeed as separator).
 
 EXAMPLES
-    Open and parse a Fortigate config file, save policy report as CSV. 
+    Open and parse a Fortigate config file, save reports as CSV. 
     
     PS C:\>$Config = New-PSFortigateReport -Params @('C:\firewall.conf')
     PS C:\>$Config.savePolicyReport('C:\firewall-policy.csv')
+    PS C:\>$Config.saveAddressReport('C:\firewall-address.csv')
+    PS C:\>$Config.saveAddressGroupReport('C:\firewall-addressgroup.csv')
 
 
-    Open and parse a Fortigate config file using UTF8 encoding, save policy report as CSV.
+    Open and parse a Fortigate config file using UTF8 encoding, save reports as CSV.
 
     PS C:\>$Config = New-PSFortigateReport -Params @('C:\firewall.conf', [System.Text.Encoding]::UTF8)
     PS C:\>$Config.savePolicyReport('C:\firewall-policy.csv')
+    PS C:\>$Config.saveAddressReport('C:\firewall-address.csv')
+    PS C:\>$Config.saveAddressGroupReport('C:\firewall-addressgroup.csv')
 
 
 KEYWORDS

@@ -139,11 +139,42 @@ Class PSFortigateConfigObject : PSFortigateConfig {
     #endregion
     #region [void]setPolicyTemplate($Path)
     [void]setPolicyTemplate(
-            $Path
+        [System.String]$Path
     ) {
         Write-Debug ('PSFortigateConfigObject: Load policy template from {0}' -f $Path)
         $Template = $this.ReadTextFile($Path)
         $this.setPolicyTemplate($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getPolicy()
+    [PSCustomObject[]]getPolicy() {
+        $cPolicies = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['firewall policy'].count -gt 0) {
+                    foreach ($Policy in $vdom.Value['firewall policy'].GetEnumerator()) {
+                        $oPolicy = $this.PolicyTemplate.PsObject.Copy()
+                        $oPolicy.vdom = $vdom.Name
+                        $oPolicy.sequence = $Policy.Name
+
+                        foreach ($PolicyOption in $Policy.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} Policy {1} Option {2}' -f $vdom.Name, $Policy.Name, $PolicyOption.Name)
+                                $oPolicy.($PolicyOption.Name) = $PolicyOption.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} Address {1} Option {2} - option not found in policy template' -f $vdom.Name, $Policy.Name, $PolicyOption.Name)
+                            }
+                        }
+                        $cPolicies.Add($oPolicy)
+                    }
+                }
+            }
+            return $cPolicies
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
     }
 
     #endregion
@@ -186,11 +217,42 @@ Class PSFortigateConfigObject : PSFortigateConfig {
     #endregion
     #region [void]setAddressTemplate($Path)
     [void]setAddressTemplate(
-            $Path
+            [System.String]$Path
     ) {
         Write-Debug ('PSFortigateConfigObject: Load address template from {0}' -f $Path)
         $Template = $this.ReadTextFile($Path)
         $this.setAddressTemplate($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getAddress()
+    [PSCustomObject[]]getAddress() {
+        $cAddresses = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['firewall address'].count -gt 0) {
+                    foreach ($Address in $vdom.Value['firewall address'].GetEnumerator()) {
+                        $oAddress = $this.AddressTemplate.PsObject.Copy()
+                        $oAddress.vdom = $vdom.Name
+                        $oAddress.name = $Address.Name
+
+                        foreach ($AddressOption in $Address.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} Address {1} Option {2}' -f $vdom.Name, $Address.Name, $AddressOption.Name)
+                                $oAddress.($AddressOption.Name) = $AddressOption.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} Address {1} Option {2} - option not found in address template' -f $vdom.Name, $Address.Name, $AddressOption.Name)
+                            }
+                        }
+                        $cAddresses.Add($oAddress)
+                    }
+                }
+            }
+            return $cAddresses
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
     }
 
     #endregion
@@ -226,73 +288,11 @@ Class PSFortigateConfigObject : PSFortigateConfig {
     #endregion
     #region [void]setAddressGroupTemplate($Path)
     [void]setAddressGroupTemplate(
-            $Path
+            [System.String]$Path
     ) {
         Write-Debug ('PSFortigateConfigObject: Load address group template from {0}' -f $Path)
         $Template = $this.ReadTextFile($Path)
         $this.setAddressGroupTemplate($Template)
-    }
-
-    #endregion
-    #region [PSCustomObject[]]getPolicy()
-    [PSCustomObject[]]getPolicy() {
-        $cPolicies = New-Object System.Collections.ArrayList
-        if ($this.Config['vdom'].count -gt 0) {
-            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
-                if ($vdom.Value['firewall policy'].count -gt 0) {
-                    foreach ($Policy in $vdom.Value['firewall policy'].GetEnumerator()) {
-                        $oPolicy = $this.PolicyTemplate.PsObject.Copy()
-                        $oPolicy.vdom = $vdom.Name
-                        $oPolicy.sequence = $Policy.Name
-
-                        foreach ($PolicyOption in $Policy.Value.GetEnumerator()) {
-                            try {
-                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} Policy {1} Option {2}' -f $vdom.Name, $Policy.Name, $PolicyOption.Name)
-                                $oPolicy.($PolicyOption.Name) = $PolicyOption.Value
-                            }
-                            catch {
-                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} Address {1} Option {2} - option not found in policy template' -f $vdom.Name, $Policy.Name, $PolicyOption.Name)
-                            }
-                        }
-                        $cPolicies.Add($oPolicy)
-                    }
-                }
-            }
-            return $cPolicies
-        }
-        Write-Debug ('PSFortigateConfigObject: No vDom found')
-        return $null
-    }
-
-    #endregion
-    #region [PSCustomObject[]]getAddress()
-    [PSCustomObject[]]getAddress() {
-        $cAddresses = New-Object System.Collections.ArrayList
-        if ($this.Config['vdom'].count -gt 0) {
-            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
-                if ($vdom.Value['firewall address'].count -gt 0) {
-                    foreach ($Address in $vdom.Value['firewall address'].GetEnumerator()) {
-                        $oAddress = $this.AddressTemplate.PsObject.Copy()
-                        $oAddress.vdom = $vdom.Name
-                        $oAddress.name = $Address.Name
-
-                        foreach ($AddressOption in $Address.Value.GetEnumerator()) {
-                            try {
-                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} Address {1} Option {2}' -f $vdom.Name, $Address.Name, $AddressOption.Name)
-                                $oAddress.($AddressOption.Name) = $AddressOption.Value
-                            }
-                            catch {
-                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} Address {1} Option {2} - option not found in address template' -f $vdom.Name, $Address.Name, $AddressOption.Name)
-                            }
-                        }
-                        $cAddresses.Add($oAddress)
-                    }
-                }
-            }
-            return $cAddresses
-        }
-        Write-Debug ('PSFortigateConfigObject: No vDom found')
-        return $null
     }
 
     #endregion

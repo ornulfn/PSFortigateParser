@@ -15,7 +15,9 @@ Detailed changes for each release are documented in the [release notes](https://
 Basic usage:
 
 ```powershell
-    # Open and parse a Fortigate config file using UTF8 encoding, save policy report as CSV.
+    # Open and parse a Fortigate config file using UTF8 encoding, save reports as CSV.
     $Config = New-PSFortigateReport -Params @('C:\firewall.conf', [System.Text.Encoding]::UTF8)
     $Config.savePolicyReport('C:\firewall-policy.csv')
+    $Config.saveAddressReport('C:\firewall-address.csv')
+    $Config.saveAddressGroupReport('C:\firewall-addressgroup.csv')
 ```
