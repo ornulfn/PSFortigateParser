@@ -1,4 +1,4 @@
-﻿#Generated at 01/02/2020 02:24:35 by Ørnulf Nielsen
+﻿#Generated at 01/02/2020 16:34:18 by Ørnulf Nielsen
 #region Class PSFortigateConfig : System.IDisposable
 Class PSFortigateConfig : System.IDisposable {
     #region Properties
@@ -8,6 +8,8 @@ Class PSFortigateConfig : System.IDisposable {
     Hidden [System.IO.FileStream]$FileStream
     Hidden [System.IO.StreamReader]$StreamReader
     Hidden [System.Boolean]$BreakTopLevel = $false
+    Hidden [System.Boolean]$inPolicySection = $false
+    Hidden [System.Int32]$PolicySequence
 
     [System.Collections.Hashtable]$Config
 
@@ -118,9 +120,16 @@ Class PSFortigateConfig : System.IDisposable {
             if ($sLine -match "^\s*(?<type>config|edit)\s+(?<section>.*)\s*$") {
                 if ($Matches.type -eq 'config') {
                     Write-Debug ('PSFortigateConfig: Found config section {0}' -f $Matches.section)
+                    if ($Matches.section -eq "firewall policy") {
+                        $this.inPolicySection = $true
+                        $this.PolicySequence = 0
+                    }
                     $Section[$Matches.section] = $this.ReadConfigSection($Matches.section, 'end')
                 } else {
                     Write-Debug ('PSFortigateConfig: Found config sub section {0}' -f $Matches.section)
+                    if ($this.inPolicySection) {
+                        $this.PolicySequence++
+                    }
                     $Section[$Matches.section -replace "`"",""] = $this.ReadConfigSection($Matches.section, 'next')
                 }
                 continue
@@ -128,6 +137,9 @@ Class PSFortigateConfig : System.IDisposable {
             # Break on end and next statements
             if ($sLine -match ("^\s*(?<EndMarker>next|end)\s*$")) {
                 # Special handling for vdom - end without next
+                if ($Matches.EndMarker -eq "end" -and $this.inPolicySection) {
+                    $this.inPolicySection = $false
+                }
                 if ($Matches.EndMarker -eq "end" -and $EndMarker -eq "next") {
                     $this.BreakTopLevel = $true
                 }
@@ -136,6 +148,11 @@ Class PSFortigateConfig : System.IDisposable {
             # Section property
             if ($sLine -match "^(\s*)set\s+(?<Key>[^\s]+)\s+(?<Value>.+)\s*$") {
                 $PropertyKey = $Matches.Key -replace "`"",""
+
+                # Inject sequence number for firewall policy
+                if ($PropertyKey -eq "name" -and $this.inPolicySection) {
+                    $Section['sequence'] = $this.PolicySequence
+                }
 
                 # Remove double quotes - use array if multi-valued
                 $PropertyValue = $Matches.Value -split "`"\s+`""
@@ -213,7 +230,7 @@ Class PSFortigateConfigObject : PSFortigateConfig {
         [System.String[]]$Template
     ) {
         # Columns are displayed according to order in template
-        $Options = [Ordered]@{ vdom = $null; sequence = $null }
+        $Options = [Ordered]@{ vdom = $null; sequence = $null ; policyid = $null }
         foreach ($Line in $Template) {
             if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
                 $Options.add($Matches.Option, $null)
@@ -313,7 +330,8 @@ Class PSFortigateConfigObject : PSFortigateConfig {
                     foreach ($Policy in $vdom.Value['firewall policy'].GetEnumerator()) {
                         $oPolicy = $this.PolicyTemplate.PsObject.Copy()
                         $oPolicy.vdom = $vdom.Name
-                        $oPolicy.sequence = $Policy.Name
+                        $oPolicy.policyid = $Policy.Name
+#                        $oPolicy.sequence = $Policy.Name
 
                         foreach ($PolicyOption in $Policy.Value.GetEnumerator()) {
                             try {
@@ -534,8 +552,9 @@ Class PSFortigateReport : PSFortigateConfigObject {
         #   - use LF as separator for multi valued fields (suitable for CSV)
         $this.PolicyReportTemplate = @(
             "vdom", 
-            "global-label",
             "sequence", 
+            "global-label",
+            "policyid", 
             "status", 
             "name", 
             @{Name="srcintf"; Expression={ ([array]$_.srcintf) -join [char]10 }},
@@ -568,7 +587,7 @@ Class PSFortigateReport : PSFortigateConfigObject {
     #endregion
     #region getPolicyReport()
     [PsCustomObject[]]getPolicyReport() {
-        return $this.getPolicy() | Select-Object -Property $this.PolicyReportTemplate
+        return $this.getPolicy() | Sort-Object -Property "vdom","sequence" | Select-Object -Property $this.PolicyReportTemplate
     }
 
     #endregion

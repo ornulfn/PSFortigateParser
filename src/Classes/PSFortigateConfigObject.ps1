@@ -56,7 +56,7 @@ Class PSFortigateConfigObject : PSFortigateConfig {
         [System.String[]]$Template
     ) {
         # Columns are displayed according to order in template
-        $Options = [Ordered]@{ vdom = $null; sequence = $null }
+        $Options = [Ordered]@{ vdom = $null; sequence = $null ; policyid = $null }
         foreach ($Line in $Template) {
             if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
                 $Options.add($Matches.Option, $null)
@@ -156,7 +156,8 @@ Class PSFortigateConfigObject : PSFortigateConfig {
                     foreach ($Policy in $vdom.Value['firewall policy'].GetEnumerator()) {
                         $oPolicy = $this.PolicyTemplate.PsObject.Copy()
                         $oPolicy.vdom = $vdom.Name
-                        $oPolicy.sequence = $Policy.Name
+                        $oPolicy.policyid = $Policy.Name
+#                        $oPolicy.sequence = $Policy.Name
 
                         foreach ($PolicyOption in $Policy.Value.GetEnumerator()) {
                             try {

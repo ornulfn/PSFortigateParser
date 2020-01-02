@@ -7,6 +7,8 @@ Class PSFortigateConfig : System.IDisposable {
     Hidden [System.IO.FileStream]$FileStream
     Hidden [System.IO.StreamReader]$StreamReader
     Hidden [System.Boolean]$BreakTopLevel = $false
+    Hidden [System.Boolean]$inPolicySection = $false
+    Hidden [System.Int32]$PolicySequence
 
     [System.Collections.Hashtable]$Config
 
@@ -117,9 +119,16 @@ Class PSFortigateConfig : System.IDisposable {
             if ($sLine -match "^\s*(?<type>config|edit)\s+(?<section>.*)\s*$") {
                 if ($Matches.type -eq 'config') {
                     Write-Debug ('PSFortigateConfig: Found config section {0}' -f $Matches.section)
+                    if ($Matches.section -eq "firewall policy") {
+                        $this.inPolicySection = $true
+                        $this.PolicySequence = 0
+                    }
                     $Section[$Matches.section] = $this.ReadConfigSection($Matches.section, 'end')
                 } else {
                     Write-Debug ('PSFortigateConfig: Found config sub section {0}' -f $Matches.section)
+                    if ($this.inPolicySection) {
+                        $this.PolicySequence++
+                    }
                     $Section[$Matches.section -replace "`"",""] = $this.ReadConfigSection($Matches.section, 'next')
                 }
                 continue
@@ -127,6 +136,9 @@ Class PSFortigateConfig : System.IDisposable {
             # Break on end and next statements
             if ($sLine -match ("^\s*(?<EndMarker>next|end)\s*$")) {
                 # Special handling for vdom - end without next
+                if ($Matches.EndMarker -eq "end" -and $this.inPolicySection) {
+                    $this.inPolicySection = $false
+                }
                 if ($Matches.EndMarker -eq "end" -and $EndMarker -eq "next") {
                     $this.BreakTopLevel = $true
                 }
@@ -135,6 +147,11 @@ Class PSFortigateConfig : System.IDisposable {
             # Section property
             if ($sLine -match "^(\s*)set\s+(?<Key>[^\s]+)\s+(?<Value>.+)\s*$") {
                 $PropertyKey = $Matches.Key -replace "`"",""
+
+                # Inject sequence number for firewall policy
+                if ($PropertyKey -eq "name" -and $this.inPolicySection) {
+                    $Section['sequence'] = $this.PolicySequence
+                }
 
                 # Remove double quotes - use array if multi-valued
                 $PropertyValue = $Matches.Value -split "`"\s+`""

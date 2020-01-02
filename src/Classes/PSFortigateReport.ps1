@@ -45,8 +45,9 @@ Class PSFortigateReport : PSFortigateConfigObject {
         #   - use LF as separator for multi valued fields (suitable for CSV)
         $this.PolicyReportTemplate = @(
             "vdom", 
-            "global-label",
             "sequence", 
+            "global-label",
+            "policyid", 
             "status", 
             "name", 
             @{Name="srcintf"; Expression={ ([array]$_.srcintf) -join [char]10 }},
@@ -79,7 +80,7 @@ Class PSFortigateReport : PSFortigateConfigObject {
     #endregion
     #region getPolicyReport()
     [PsCustomObject[]]getPolicyReport() {
-        return $this.getPolicy() | Select-Object -Property $this.PolicyReportTemplate
+        return $this.getPolicy() | Sort-Object -Property "vdom","sequence" | Select-Object -Property $this.PolicyReportTemplate
     }
 
     #endregion
