@@ -1,4 +1,4 @@
-﻿#Generated at 2020-01-03 16:06 by Ørnulf Nielsen
+﻿#Generated at 2020-01-03 16:19 by Ørnulf Nielsen
 #region Class PSFortigateConfig : System.IDisposable
 Class PSFortigateConfig : System.IDisposable {
     #region Properties
