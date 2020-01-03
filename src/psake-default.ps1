@@ -3,17 +3,18 @@ properties {
     $ModuleVersion = '1.1.0'
 
     $ModuleManifest = @{
-        'RootModule'        = $ModuleName
-        'ModuleVersion'     = $ModuleVersion
-        'Guid'              = '9782412b-b465-4ac3-a7d6-a18ef388be59'
-        'Author'            = 'Ørnulf Nielsen'
-        'Copyright'         = '(c) 2020 Ørnulf Nielsen. All rights reserved.'
-        'Description'       = 'Parse and create CSV reports from a Fortigate configuration file'
-        'PowerShellVersion' = '5.1'
-        'Tags'              = 'Fortigate','Fortinet','CSV','Parse'
-        'LicenseUri'        = 'https://github.com/ornulfn/PSFortigateParser/blob/master/LICENSE'
-        'ProjectUri'        = 'https://github.com/ornulfn/PSFortigateParser'
-        'ReleaseNotes'      = 'https://github.com/ornulfn/PSFortigateParser/releases'
+        'RootModule'           = $ModuleName
+        'ModuleVersion'        = $ModuleVersion
+        'CompatiblePSEditions' = 'Core', 'Desktop'
+        'Guid'                 = '9782412b-b465-4ac3-a7d6-a18ef388be59'
+        'Author'               = 'Ørnulf Nielsen'
+        'Copyright'            = '(c) 2020 Ørnulf Nielsen. All rights reserved.'
+        'Description'          = 'Parse and create CSV reports from a Fortigate configuration file'
+        'PowerShellVersion'    = '5.1'
+        'Tags'                 = 'Fortigate','Fortinet','CSV','Parse', 'PSEdition_Desktop', 'PSEdition_Core', 'Windows', 'Linux', 'MacOS'
+        'LicenseUri'           = 'https://github.com/ornulfn/PSFortigateParser/blob/master/LICENSE'
+        'ProjectUri'           = 'https://github.com/ornulfn/PSFortigateParser'
+        'ReleaseNotes'         = 'https://github.com/ornulfn/PSFortigateParser/releases'
     }
 
     $Root = ((Get-Item $PSScriptRoot).Parent).FullName

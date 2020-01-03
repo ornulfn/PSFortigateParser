@@ -15,7 +15,7 @@ RootModule = 'PSFortigateParser'
 ModuleVersion = '1.1.0'
 
 # Supported PSEditions
-# CompatiblePSEditions = @()
+CompatiblePSEditions = 'Core', 'Desktop'
 
 # ID used to uniquely identify this module
 GUID = '9782412b-b465-4ac3-a7d6-a18ef388be59'
@@ -96,7 +96,7 @@ PrivateData = @{
     PSData = @{
 
         # Tags applied to this module. These help with module discovery in online galleries.
-        Tags = 'Fortigate','Fortinet','CSV','Parse'
+        Tags = 'Fortigate','Fortinet','CSV','Parse','PSEdition_Desktop','PSEdition_Core','Windows','Linux','MacOS'
 
         # A URL to the license for this module.
         LicenseUri = 'https://github.com/ornulfn/PSFortigateParser/blob/master/LICENSE'
