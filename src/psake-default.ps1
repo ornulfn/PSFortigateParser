@@ -17,7 +17,7 @@ properties {
     }
 
     $Root = ((Get-Item $PSScriptRoot).Parent).FullName
-    $ModuleFolderPath = Join-Path -Path $Root -ChildPath $ModuleVersion
+    $ModuleFolderPath = $Root
     $ExportPath = Join-Path -Path $ModuleFolderPath -ChildPath ("{0}.psm1" -f $ModuleName)
     $CodeSourcePath = Join-Path -Path $Root -ChildPath "src"
 
@@ -31,7 +31,7 @@ task default -depends Test
 task Test -depends Compile, Clean {
     $testMessage
     Write-Host "[TEST][PSM1] Analyze PSM1..." -ForegroundColor RED -BackgroundColor White
-    $Results = Invoke-ScriptAnalyzer -Path $ModuleFolderPath -Severity @('Error', 'Warning') -Recurse -Verbose:$false
+    $Results = Invoke-ScriptAnalyzer -Path $ModuleFolderPath -Severity @('Error', 'Warning') -Verbose:$false
     if ($Results) {
         $Results | Format-Table  
         Write-Error -Message 'One or more Script Analyzer errors/warnings where found. Build cannot continue!'        
