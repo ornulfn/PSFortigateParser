@@ -2,6 +2,20 @@ properties {
     $ModuleName = "PSFortigateParser"
     $ModuleVersion = '1.0.0'
 
+    $ModuleManifest = @{
+        'RootModule'        = $ModuleName
+        'ModuleVersion'     = $ModuleVersion
+        'Guid'              = '9782412b-b465-4ac3-a7d6-a18ef388be59'
+        'Author'            = 'Ørnulf Nielsen'
+        'Copyright'         = '(c) 2020 Ørnulf Nielsen. All rights reserved.'
+        'Description'       = 'Parse and create CSV reports from a Fortigate configuration file'
+        'PowerShellVersion' = '5.1'
+        'Tags'              = 'Fortigate','Fortinet','CSV','Parse'
+        'LicenseUri'        = 'https://github.com/ornulfn/PSFortigateParser/blob/master/LICENSE'
+        'ProjectUri'        = 'https://github.com/ornulfn/PSFortigateParser'
+        'ReleaseNotes'      = 'https://github.com/ornulfn/PSFortigateParser/releases'
+    }
+
     $Root = ((Get-Item $PSScriptRoot).Parent).FullName
     $ModuleFolderPath = Join-Path -Path $Root -ChildPath $ModuleVersion
     $ExportPath = Join-Path -Path $ModuleFolderPath -ChildPath ("{0}.psm1" -f $ModuleName)
@@ -33,7 +47,7 @@ task Compile -depends Clean {
         Write-Host "[BUILD][PSM1] PSM1 file detected. Deleting..." -ForegroundColor RED -BackgroundColor White
         Remove-Item -Path $ExportPath -Force
     }
-    $Date = Get-Date
+    $Date = Get-Date -Format "yyyy-MM-dd HH:mm"
     "#Generated at $($Date) by Ørnulf Nielsen" | out-File -FilePath $ExportPath -Encoding utf8 -Append
 
     Write-Host "[BUILD][Code] Loading Class, public and private functions" -ForegroundColor RED -BackgroundColor White
@@ -79,7 +93,7 @@ task Compile -depends Clean {
     $FunctionsToExport = $PublicFunctions.BaseName
     $Manifest = Join-Path -Path $ModuleFolderPath -ChildPath "$($ModuleName).psd1"
 
-    Update-ModuleManifest -Path $Manifest -FunctionsToExport $FunctionsToExport
+    Update-ModuleManifest -Path $Manifest -FunctionsToExport $FunctionsToExport @ModuleManifest
     (Get-Content -Path $Manifest) | Set-Content -Path $Manifest -Encoding UTF8
 
     Write-Host "[BUILD][END][MAIN PSM1] building main PSM1 " -ForegroundColor RED -BackgroundColor White
