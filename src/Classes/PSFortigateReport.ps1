@@ -6,6 +6,9 @@ Class PSFortigateReport : PSFortigateConfigObject {
     Hidden [System.Array]$AddressGroupReportTemplate
     Hidden [System.Array]$ServiceReportTemplate
     Hidden [System.Array]$ServiceGroupReportTemplate
+    Hidden [System.Array]$LocalUserReportTemplate
+    Hidden [System.Array]$FortitokenReportTemplate
+    Hidden [System.Array]$UserGroupReportTemplate
 
     #endregion
     #region Constructors
@@ -19,6 +22,9 @@ Class PSFortigateReport : PSFortigateConfigObject {
         $this.setAddressGroupReportTemplate()
         $this.setServiceReportTemplate()
         $this.setServiceGroupReportTemplate()
+        $this.setLocalUserReportTemplate()
+        $this.setFortitokenReportTemplate()
+        $this.setUserGroupReportTemplate()
     }
 
     #endregion
@@ -293,6 +299,145 @@ Class PSFortigateReport : PSFortigateConfigObject {
         $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
         $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
         $this.getServiceGroupReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setLocalUserReportTemplate()
+    [void]setLocalUserReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default local user report template'
+        # Columns to report (in listed order)
+        $this.LocalUserReportTemplate = @(
+            "vdom",
+            "status",
+            "name",
+            @{Name="email"; Expression={ $_."email-to" }},
+            @{Name="phone"; Expression={ $_."sms-phone" }},
+            "fortitoken"
+        )
+        
+    }
+
+    #endregion
+    #region [void]setLocalUserReportTemplate($Path)
+    [void]setLocalUserReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load local user report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.LocalUserReportTemplate = $Template
+    }
+
+    #endregion
+    #region getLocalUserReport()
+    [PsCustomObject[]]getLocalUserReport() {
+        return $this.getLocalUser() | Select-Object -Property $this.LocalUserReportTemplate
+    }
+
+    #endregion
+    #region saveLocalUserReport($Path)
+    [void]saveLocalUserReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getLocalUserReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setFortitokenReportTemplate()
+    [void]setFortitokenReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default fortitoken report template'
+        # Columns to report (in listed order)
+        $this.FortitokenReportTemplate = @(
+            "vdom",
+            @{Name="fortitoken"; Expression={ $_."name" }},
+            "comments",
+            "activation-code",
+            @{Name="activation-expire"; Expression={ if($_."activation-expire".Length -gt 0) { [timezone]::CurrentTimeZone.ToLocalTime(([datetime]'1/1/1970').AddSeconds($_."activation-expire")) }}}
+        )
+        
+    }
+
+    #endregion
+    #region [void]setFortitokenReportTemplate($Path)
+    [void]setFortitokenReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load fortitoken report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.FortitokenReportTemplate = $Template
+    }
+
+    #endregion
+    #region getFortitokenReport()
+    [PsCustomObject[]]getFortitokenReport() {
+        return $this.getFortitoken() | Select-Object -Property $this.FortitokenReportTemplate
+    }
+
+    #endregion
+    #region saveFortitokenReport($Path)
+    [void]saveFortitokenReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getFortitokenReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setUserGroupReportTemplate()
+    [void]setUserGroupReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default user group report template'
+        # Columns to report (in listed order)
+        $this.UserGroupReportTemplate = @(
+            "vdom",
+            "name",
+            @{Name="member"; Expression={ ([array]$_.member) -join [char]10 }}
+        )
+    }
+
+    #endregion
+    #region [void]setUserGroupReportTemplate($Path)
+    [void]setUserGroupReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load user group report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.UserGroupReportTemplate = $Template
+    }
+
+    #endregion
+    #region getUserGroupReport()
+    [PsCustomObject[]]getUserGroupReport() {
+        return $this.getUserGroup() | Select-Object -Property $this.UserGroupReportTemplate
+    }
+
+    #endregion
+    #region saveUserGroupReport($Path)
+    [void]saveUserGroupReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getUserGroupReport() | `
             ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
             ForEach-Object { $StreamWriter.WriteLine($_) }
         $StreamWriter.Close()

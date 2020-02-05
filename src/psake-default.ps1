@@ -1,6 +1,6 @@
 properties {
     $ModuleName = "PSFortigateParser"
-    $ModuleVersion = '1.1.1'
+    $ModuleVersion = '1.2.0'
 
     $ModuleManifest = @{
         'RootModule'           = $ModuleName

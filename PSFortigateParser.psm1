@@ -1,4 +1,4 @@
-﻿#Generated at 2020-01-03 16:19 by Ørnulf Nielsen
+﻿#Generated at 2020-02-04 18:03 by Ørnulf Nielsen
 #region Class PSFortigateConfig : System.IDisposable
 Class PSFortigateConfig : System.IDisposable {
     #region Properties
@@ -192,6 +192,9 @@ Class PSFortigateConfigObject : PSFortigateConfig {
     Hidden [PSCustomObject]$AddressGroupTemplate
     Hidden [PSCustomObject]$ServiceTemplate
     Hidden [PSCustomObject]$ServiceGroupTemplate
+    Hidden [PSCustomObject]$LocalUserTemplate
+    Hidden [PSCustomObject]$FortitokenTemplate
+    Hidden [PSCustomObject]$UserGroupTemplate
 
     #endregion
     #region Constructors
@@ -205,6 +208,9 @@ Class PSFortigateConfigObject : PSFortigateConfig {
         $this.setAddressGroupTemplate()
         $this.setServiceTemplate()
         $this.setServiceGroupTemplate()
+        $this.setLocalUserTemplate()
+        $this.setFortitokenTemplate()
+        $this.setUserGroupTemplate()
     }
 
     #endregion
@@ -391,15 +397,17 @@ Class PSFortigateConfigObject : PSFortigateConfig {
     edit "deleteme"
         set uuid "deleteme"
         set type "deleteme"
+        set comment "deleteme"
+        set visibility "deleteme"
         set associated-interface "deleteme"
+        set color "deleteme"
+        set allow-routing "deleteme"
         set subnet "deleteme"
         set start-ip "deleteme"
         set end-ip "deleteme"
-        set fqdn "deleteme"
         set wildcard-fqdn "deleteme"
-        set comment "deleteme"
-        set visibility "deleteme"
-        set allow-routing "deleteme"
+        set fqdn "deleteme"
+        set cache-ttl "deleteme"
     next
 "@.Split([Environment]::NewLine)
         $this.setAddressTemplate($Template)
@@ -470,6 +478,8 @@ Class PSFortigateConfigObject : PSFortigateConfig {
         set uuid "deleteme"
         set member "deleteme"
         set comment "deleteme"
+        set visibility "deleteme"
+        set color "deleteme"
         set allow-routing "deleteme"
     next
 "@.Split([Environment]::NewLine)
@@ -542,11 +552,24 @@ Class PSFortigateConfigObject : PSFortigateConfig {
         set category "deleteme"
         set protocol "deleteme"
         set protocol-number "deleteme"
+        set helper "deleteme"
+        set check-reset-range "deleteme"
+        set comment "deleteme"
+        set color "deleteme"
         set visibility "deleteme"
+        set app-service-type disable
+        set iprange "deleteme"
+        set fqdn "deleteme"
         set tcp-portrange "deleteme"
         set udp-portrange "deleteme"
+        set sctp-portrange "deleteme"
+        set tcp-halfclose-timer "deleteme"
+        set tcp-halfopen-timer "deleteme"
+        set tcp-timewait-timer "deleteme"
+        set udp-idle-timer "deleteme"
+        set session-ttl "deleteme"
         set icmptype "deleteme"
-        set comment "deleteme"
+        set icmpcode "deleteme"
     next
 "@.Split([Environment]::NewLine)
         $this.setServiceTemplate($Template)
@@ -614,7 +637,10 @@ Class PSFortigateConfigObject : PSFortigateConfig {
         Write-Debug 'PSFortigateConfigObject: Set default service group template'
         $Template = @"
     edit "deleteme"
-       set member "deleteme"
+        set member "deleteme"
+        set proxy "deleteme"
+        set comment "deleteme"
+        set color "deleteme"
     next
 "@.Split([Environment]::NewLine)
         $this.setServiceGroupTemplate($Template)
@@ -662,6 +688,245 @@ Class PSFortigateConfigObject : PSFortigateConfig {
     }
 
     #endregion
+    #region [void]setLocalUserTemplate([System.String[]]$Template)
+    [void]setLocalUserTemplate(
+        [System.String[]]$Template
+    ) {
+        # Columns are displayed according to order in template
+        $Options = [Ordered]@{ vdom = $null; name = $null }
+        foreach ($Line in $Template) {
+            if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
+                $Options.add($Matches.Option, $null)
+            }
+        }
+        $this.LocalUserTemplate = New-Object -TypeName "PSCustomObject" -Property $Options
+    }
+
+    #endregion
+    #region [void]setLocalUserTemplate()
+    [void]setLocalUserTemplate() {
+        Write-Debug 'PSFortigateConfigObject: Set default local user template'
+        $Template = @"
+    edit "deleteme"
+        set status "deleteme"
+        set type "deleteme"
+        set two-factor "deleteme"
+        set fortitoken "deleteme"
+        set email-to "deleteme"
+        set sms-server "deleteme"
+        set sms-phone "deleteme"
+        set passwd-policy "deleteme"
+        set passwd-time "deleteme"
+        set authtimeout "deleteme"
+        set auth-concurrent-override "deleteme"
+        set passwd "deleteme"
+    next
+"@.Split([Environment]::NewLine)
+        $this.setLocalUserTemplate($Template)
+    }
+
+    #endregion
+    #region [void]setLocalUserTemplate($Path)
+    [void]setLocalUserTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateConfigObject: Load local user template from {0}' -f $Path)
+        $Template = $this.ReadTextFile($Path)
+        $this.setLocalUserTemplate($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getLocalUser()
+    [PSCustomObject[]]getLocalUser() {
+        $cLocalUsers = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['user local'].count -gt 0) {
+                    foreach ($LocalUser in $vdom.Value['user local'].GetEnumerator()) {
+                        $oLocalUser = $this.LocalUserTemplate.PsObject.Copy()
+                        $oLocalUser.vdom = $vdom.Name
+                        $oLocalUser.name = $LocalUser.Name
+
+                        foreach ($LocalUserOption in $LocalUser.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} LocalUser {1} Option {2}' -f $vdom.Name, $LocalUser.Name, $LocalUserOption.Name)
+                                $oLocalUser.($LocalUserOption.Name) = $LocalUserOption.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} LocalUser {1} Option {2} - option not found in local user template' -f $vdom.Name, $LocalUser.Name, $LocalUserOption.Name)
+                            }
+                        }
+                        $cLocalUsers.Add($oLocalUser)
+                    }
+                }
+            }
+            return $cLocalUsers
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
+    }
+
+    #endregion
+    #region [void]setFortitokenTemplate([System.String[]]$Template)
+    [void]setFortitokenTemplate(
+        [System.String[]]$Template
+    ) {
+        # Columns are displayed according to order in template
+        $Options = [Ordered]@{ vdom = $null; name = $null }
+        foreach ($Line in $Template) {
+            if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
+                $Options.add($Matches.Option, $null)
+            }
+        }
+        $this.FortitokenTemplate = New-Object -TypeName "PSCustomObject" -Property $Options
+    }
+
+    #endregion
+    #region [void]setFortitokenTemplate()
+    [void]setFortitokenTemplate() {
+        Write-Debug 'PSFortigateConfigObject: Set default fortitoken template'
+        $Template = @"
+    edit "deleteme"
+        set status "deleteme"
+        set comments "deleteme"
+        set license "deleteme"
+        set activation-code "deleteme"
+        set activation-expire "deleteme"
+        set reg-id "deleteme"
+        set os-ver "deleteme"
+        set seed "deleteme"
+    next
+"@.Split([Environment]::NewLine)
+        $this.setFortitokenTemplate($Template)
+    }
+
+    #endregion
+    #region [void]setFortitokenTemplate($Path)
+    [void]setFortitokenTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateConfigObject: Load fortitoken template from {0}' -f $Path)
+        $Template = $this.ReadTextFile($Path)
+        $this.setFortitokenTemplate($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getFortitoken()
+    [PSCustomObject[]]getFortitoken() {
+        $cFortitokens = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['user fortitoken'].count -gt 0) {
+                    foreach ($Fortitoken in $vdom.Value['user fortitoken'].GetEnumerator()) {
+                        $oFortitoken = $this.FortitokenTemplate.PsObject.Copy()
+                        $oFortitoken.vdom = $vdom.Name
+                        $oFortitoken.name = $Fortitoken.Name
+
+                        foreach ($FortitokenOption in $Fortitoken.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} Fortitoken {1} Option {2}' -f $vdom.Name, $Fortitoken.Name, $FortitokenOption.Name)
+                                $oFortitoken.($FortitokenOption.Name) = $FortitokenOption.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} Fortitoken {1} Option {2} - option not found in fortitoken template' -f $vdom.Name, $Fortitoken.Name, $FortitokenOption.Name)
+                            }
+                        }
+                        $cFortitokens.Add($oFortitoken)
+                    }
+                }
+            }
+            return $cFortitokens
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
+    }
+
+    #endregion
+    #region [void]setUserGroupTemplate([System.String[]]$Template)
+    [void]setUserGroupTemplate(
+        [System.String[]]$Template
+    ) {
+        # Columns are displayed according to order in template
+        $Options = [Ordered]@{ vdom = $null; name = $null }
+        foreach ($Line in $Template) {
+            if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
+                $Options.add($Matches.Option, $null)
+            }
+        }
+        $this.UserGroupTemplate = New-Object -TypeName "PSCustomObject" -Property $Options
+    }
+
+    #endregion
+    #region [void]setUserGroupTemplate()
+    [void]setUserGroupTemplate() {
+        Write-Debug 'PSFortigateConfigObject: Set default user group template'
+        $Template = @"
+    edit "deleteme"
+        set group-type "deleteme"
+        set authtimeout "deleteme"
+        set auth-concurrent-override "deleteme"
+        set http-digest-realm "deleteme"
+        set user-id "deleteme"
+        set password "deleteme"
+        set user-name "deleteme"
+        set sponsor "deleteme"
+        set company "deleteme"
+        set email "deleteme"
+        set mobile-phone "deleteme"
+        set expire-type "deleteme"
+        set expire "deleteme"
+        set max-accounts "deleteme"
+        set multiple-guest-add "deleteme"
+        set member "deleteme"
+        set sso-attribute-value "deleteme"
+    next
+"@.Split([Environment]::NewLine)
+        $this.setUserGroupTemplate($Template)
+    }
+
+    #endregion
+    #region [void]setUserGroupTemplate($Path)
+    [void]setUserGroupTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateConfigObject: Load user group template from {0}' -f $Path)
+        $Template = $this.ReadTextFile($Path)
+        $this.setUserGroupTemplate($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getUserGroup()
+    [PSCustomObject[]]getUserGroup() {
+        $cUserGroups = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['user group'].count -gt 0) {
+                    foreach ($UserGroup in $vdom.Value['user group'].GetEnumerator()) {
+                        $oUserGroup = $this.UserGroupTemplate.PsObject.Copy()
+                        $oUserGroup.vdom = $vdom.Name
+                        $oUserGroup.name = $UserGroup.Name
+
+                        foreach ($UserGroupOption in $UserGroup.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} User Group {1} Option {2}' -f $vdom.Name, $UserGroup.Name, $UserGroupOption.Name)
+                                $oUserGroup.($UserGroupOption.Name) = $UserGroupOption.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} User Group {1} Option {2} - option not found in user group template' -f $vdom.Name, $UserGroup.Name, $UserGroupOption.Name)
+                            }
+                        }
+                        $cUserGroups.Add($oUserGroup)
+                    }
+                }
+            }
+            return $cUserGroups
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
+    }
+
+    #endregion
+
 }
 
 #endregion
@@ -673,6 +938,9 @@ Class PSFortigateReport : PSFortigateConfigObject {
     Hidden [System.Array]$AddressGroupReportTemplate
     Hidden [System.Array]$ServiceReportTemplate
     Hidden [System.Array]$ServiceGroupReportTemplate
+    Hidden [System.Array]$LocalUserReportTemplate
+    Hidden [System.Array]$FortitokenReportTemplate
+    Hidden [System.Array]$UserGroupReportTemplate
 
     #endregion
     #region Constructors
@@ -686,6 +954,9 @@ Class PSFortigateReport : PSFortigateConfigObject {
         $this.setAddressGroupReportTemplate()
         $this.setServiceReportTemplate()
         $this.setServiceGroupReportTemplate()
+        $this.setLocalUserReportTemplate()
+        $this.setFortitokenReportTemplate()
+        $this.setUserGroupReportTemplate()
     }
 
     #endregion
@@ -960,6 +1231,145 @@ Class PSFortigateReport : PSFortigateConfigObject {
         $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
         $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
         $this.getServiceGroupReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setLocalUserReportTemplate()
+    [void]setLocalUserReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default local user report template'
+        # Columns to report (in listed order)
+        $this.LocalUserReportTemplate = @(
+            "vdom",
+            "status",
+            "name",
+            @{Name="email"; Expression={ $_."email-to" }},
+            @{Name="phone"; Expression={ $_."sms-phone" }},
+            "fortitoken"
+        )
+        
+    }
+
+    #endregion
+    #region [void]setLocalUserReportTemplate($Path)
+    [void]setLocalUserReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load local user report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.LocalUserReportTemplate = $Template
+    }
+
+    #endregion
+    #region getLocalUserReport()
+    [PsCustomObject[]]getLocalUserReport() {
+        return $this.getLocalUser() | Select-Object -Property $this.LocalUserReportTemplate
+    }
+
+    #endregion
+    #region saveLocalUserReport($Path)
+    [void]saveLocalUserReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getLocalUserReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setFortitokenReportTemplate()
+    [void]setFortitokenReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default fortitoken report template'
+        # Columns to report (in listed order)
+        $this.FortitokenReportTemplate = @(
+            "vdom",
+            @{Name="fortitoken"; Expression={ $_."name" }},
+            "comments",
+            "activation-code",
+            @{Name="activation-expire"; Expression={ if($_."activation-expire".Length -gt 0) { [timezone]::CurrentTimeZone.ToLocalTime(([datetime]'1/1/1970').AddSeconds($_."activation-expire")) }}}
+        )
+        
+    }
+
+    #endregion
+    #region [void]setFortitokenReportTemplate($Path)
+    [void]setFortitokenReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load fortitoken report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.FortitokenReportTemplate = $Template
+    }
+
+    #endregion
+    #region getFortitokenReport()
+    [PsCustomObject[]]getFortitokenReport() {
+        return $this.getFortitoken() | Select-Object -Property $this.FortitokenReportTemplate
+    }
+
+    #endregion
+    #region saveFortitokenReport($Path)
+    [void]saveFortitokenReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getFortitokenReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setUserGroupReportTemplate()
+    [void]setUserGroupReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default user group report template'
+        # Columns to report (in listed order)
+        $this.UserGroupReportTemplate = @(
+            "vdom",
+            "name",
+            @{Name="member"; Expression={ ([array]$_.member) -join [char]10 }}
+        )
+    }
+
+    #endregion
+    #region [void]setUserGroupReportTemplate($Path)
+    [void]setUserGroupReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load user group report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.UserGroupReportTemplate = $Template
+    }
+
+    #endregion
+    #region getUserGroupReport()
+    [PsCustomObject[]]getUserGroupReport() {
+        return $this.getUserGroup() | Select-Object -Property $this.UserGroupReportTemplate
+    }
+
+    #endregion
+    #region saveUserGroupReport($Path)
+    [void]saveUserGroupReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getUserGroupReport() | `
             ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
             ForEach-Object { $StreamWriter.WriteLine($_) }
         $StreamWriter.Close()
