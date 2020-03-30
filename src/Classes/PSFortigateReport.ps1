@@ -9,6 +9,11 @@ Class PSFortigateReport : PSFortigateConfigObject {
     Hidden [System.Array]$LocalUserReportTemplate
     Hidden [System.Array]$FortitokenReportTemplate
     Hidden [System.Array]$UserGroupReportTemplate
+    Hidden [System.Array]$InterfaceReportTemplate
+    Hidden [System.Array]$IPsecPhase1ReportTemplate
+    Hidden [System.Array]$IPsecPhase2ReportTemplate
+    Hidden [System.Array]$SystemZoneReportTemplate
+    Hidden [System.Array]$RouterStaticReportTemplate
 
     #endregion
     #region Constructors
@@ -25,6 +30,11 @@ Class PSFortigateReport : PSFortigateConfigObject {
         $this.setLocalUserReportTemplate()
         $this.setFortitokenReportTemplate()
         $this.setUserGroupReportTemplate()
+        $this.setInterfaceReportTemplate()
+        $this.setIPsecPhase1ReportTemplate()
+        $this.setIPsecPhase2ReportTemplate()
+        $this.setSystemZoneReportTemplate()
+        $this.setRouterStaticReportTemplate()
     }
 
     #endregion
@@ -438,6 +448,263 @@ Class PSFortigateReport : PSFortigateConfigObject {
         $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
         $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
         $this.getUserGroupReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setInterfaceReportTemplate()
+    [void]setInterfaceReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default interface report template'
+        # Columns to report (in listed order)
+        $this.InterfaceReportTemplate = @(
+            "vdom",
+            "name",
+            "status",
+            "type",
+            "interface",
+            "ip",
+            "description"
+        )
+    }
+
+    #endregion
+    #region [void]setInterfaceReportTemplate($Path)
+    [void]setInterfaceReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load interface report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.InterfaceReportTemplate = $Template
+    }
+
+    #endregion
+    #region getInterfaceReport()
+    [PsCustomObject[]]getInterfaceReport() {
+        return $this.getInterface() | Select-Object -Property $this.InterfaceReportTemplate
+    }
+
+    #endregion
+    #region saveInterfaceReport($Path)
+    [void]saveInterfaceReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getInterfaceReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setInterfaceReportTemplate()
+    [void]setIPsecPhase1ReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default ipsec phase1 report template'
+        # Columns to report (in listed order)
+        $this.IPsecPhase1ReportTemplate = @(
+            "vdom",
+            "name",
+            "interface",
+            "remote-gw",
+            "nattraversal",
+            "ike-version",
+            "keylife",
+            "proposal",
+            "dpd",
+            "dhgrp",
+            "comments"
+        )
+    }
+
+    #endregion
+    #region [void]setIPsecPhase1ReportTemplate($Path)
+    [void]setIPsecPhase1ReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load ipsec phase1 report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.IPsecPhase1ReportTemplate = $Template
+    }
+
+    #endregion
+    #region getIPsecPhase1Report()
+    [PsCustomObject[]]getIPsecPhase1Report() {
+        return $this.getIPsecPhase1() | Select-Object -Property $this.IPsecPhase1ReportTemplate
+    }
+
+    #endregion
+    #region saveIPsecPhase1Report($Path)
+    [void]saveIPsecPhase1Report(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getIPsecPhase1Report() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setIPsecPhase2ReportTemplate()
+    [void]setIPsecPhase2ReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default ipsec phase2 report template'
+        # Columns to report (in listed order)
+        $this.IPsecPhase2ReportTemplate = @(
+            "vdom",
+            "name",
+            "phase1name",
+            "keylifeseconds",
+            "proposal",
+            @{Name="dhgrp"; Expression={
+                if ($_."dhgrp".length -gt 0) { $out = [array]$out + $_."dhgrp" };
+                if ($_."pfs".length -gt 0) { $out = [array]$out + ("pfs {0}" -f $_."pfs") };
+                $out -join [char]10 }},
+            @{Name="src"; Expression={
+                if ($_."src-name".length -gt 0) { $out = [array]$out + $_."src-name" };
+                if ($_."src-subnet".length -gt 0) { $out = [array]$out + $_."src-subnet" };
+                $out -join [char]10 }},
+            @{Name="dst"; Expression={
+                if ($_."dst-name".length -gt 0) { $out = [array]$out + $_."dst-name" };
+                if ($_."dst-subnet".length -gt 0) { $out = [array]$out + $_."dst-subnet" };
+                $out -join [char]10 }},
+            "comments"
+        )
+    }
+
+    #endregion
+    #region [void]setIPsecPhase2ReportTemplate($Path)
+    [void]setIPsecPhase2ReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load ipsec phase2 report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.IPsecPhase2ReportTemplate = $Template
+    }
+
+    #endregion
+    #region getIPsecPhase2Report()
+    [PsCustomObject[]]getIPsecPhase2Report() {
+        return $this.getIPsecPhase2() | Select-Object -Property $this.IPsecPhase2ReportTemplate
+    }
+
+    #endregion
+    #region saveIPsecPhase2Report($Path)
+    [void]saveIPsecPhase2Report(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getIPsecPhase2Report() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setSystemZoneReportTemplate()
+    [void]setSystemZoneReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default system zone report template'
+        # Columns to report (in listed order)
+        $this.SystemZoneReportTemplate = @(
+            "vdom",
+            "name",
+            "intrazone",
+            @{Name="interface"; Expression={ ([array]$_.interface) -join [char]10 }}
+        )
+        
+    }
+
+    #endregion
+    #region [void]setSystemZoneReportTemplate($Path)
+    [void]setSystemZoneReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load system zone report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.SystemZoneReportTemplate = $Template
+    }
+
+    #endregion
+    #region getSystemZoneReport()
+    [PsCustomObject[]]getSystemZoneReport() {
+        return $this.getSystemZone() | Select-Object -Property $this.SystemZoneReportTemplate
+    }
+
+    #endregion
+    #region saveSystemZoneReport($Path)
+    [void]saveSystemZoneReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getSystemZoneReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setRouterStaticReportTemplate()
+    [void]setRouterStaticReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default router static report template'
+        # Columns to report (in listed order)
+        $this.RouterStaticReportTemplate = @(
+            "vdom",
+            "name",
+            "status",
+            @{Name="dst"; Expression={
+                if ($_."dst".length -gt 0) { $out = [array]$out + $_."dst" };
+                if ($_."dstaddr".length -gt 0) { $out = [array]$out + $_."dstaddr" };
+                $out -join [char]10 }},
+            "gateway",
+            "device",
+            "blackhole",
+            "comment"
+        )
+    }
+
+    #endregion
+    #region [void]setRouterStaticReportTemplate($Path)
+    [void]setRouterStaticReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load router static report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.RouterStaticReportTemplate = $Template
+    }
+
+    #endregion
+    #region getRouterStaticReport()
+    [PsCustomObject[]]getRouterStaticReport() {
+        return $this.getRouterStatic() | Select-Object -Property $this.RouterStaticReportTemplate
+    }
+
+    #endregion
+    #region saveRouterStaticReport($Path)
+    [void]saveRouterStaticReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getRouterStaticReport() | `
             ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
             ForEach-Object { $StreamWriter.WriteLine($_) }
         $StreamWriter.Close()

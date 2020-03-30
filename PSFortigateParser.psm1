@@ -1,4 +1,4 @@
-﻿#Generated at 2020-02-04 18:03 by Ørnulf Nielsen
+﻿#Generated at 2020-03-05 10:03 by Ørnulf Nielsen
 #region Class PSFortigateConfig : System.IDisposable
 Class PSFortigateConfig : System.IDisposable {
     #region Properties
@@ -195,6 +195,11 @@ Class PSFortigateConfigObject : PSFortigateConfig {
     Hidden [PSCustomObject]$LocalUserTemplate
     Hidden [PSCustomObject]$FortitokenTemplate
     Hidden [PSCustomObject]$UserGroupTemplate
+    Hidden [PSCustomObject]$InterfaceTemplate
+    Hidden [PSCustomObject]$IPsecPhase1Template
+    Hidden [PSCustomObject]$IPsecPhase2Template
+    Hidden [PSCustomObject]$SystemZoneTemplate
+    Hidden [PSCustomObject]$RouterStaticTemplate
 
     #endregion
     #region Constructors
@@ -211,6 +216,11 @@ Class PSFortigateConfigObject : PSFortigateConfig {
         $this.setLocalUserTemplate()
         $this.setFortitokenTemplate()
         $this.setUserGroupTemplate()
+        $this.setInterfaceTemplate()
+        $this.setIPsecPhase1Template()
+        $this.setIPsecPhase2Template()
+        $this.setSystemZoneTemplate()
+        $this.setRouterStaticTemplate()
     }
 
     #endregion
@@ -926,7 +936,481 @@ Class PSFortigateConfigObject : PSFortigateConfig {
     }
 
     #endregion
+    #region [void]setInterfaceTemplate([System.String[]]$Template)
+    [void]setInterfaceTemplate(
+        [System.String[]]$Template
+    ) {
+        # Columns are displayed according to order in template
+        $Options = [Ordered]@{ name = $null }
+        foreach ($Line in $Template) {
+            if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
+                $Options.add($Matches.Option, $null)
+            }
+        }
+        $this.InterfaceTemplate = New-Object -TypeName "PSCustomObject" -Property $Options
+    }
 
+    #endregion
+    #region [void]setInterfaceTemplate()
+    [void]setInterfaceTemplate() {
+        Write-Debug 'PSFortigateConfigObject: Set default interface template'
+        $Template = @"
+    edit "deleteme"
+        set vdom "deleteme"
+        set fortilink "deleteme"
+        set mode "deleteme"
+        set distance "deleteme"
+        set priority "deleteme"
+        set dhcp-relay-service "deleteme"
+        set allowaccess "deleteme"
+        set fail-detect "deleteme"
+        set arpforward "deleteme"
+        set broadcast-forward "deleteme"
+        set bfd "deleteme"
+        set l2forward "deleteme"
+        set vlanforward "deleteme"
+        set stpforward "deleteme"
+        set ips-sniffer-mode "deleteme"
+        set ident-accept "deleteme"
+        set ipmac "deleteme"
+        set subst "deleteme"
+        set substitute-dst-mac "deleteme"
+        set status "deleteme"
+        set netbios-forward "deleteme"
+        set wins-ip "deleteme"
+        set type "deleteme"
+        set netflow-sampler "deleteme"
+        set sflow-sampler "deleteme"
+        set scan-botnet-connections "deleteme"
+        set src-check "deleteme"
+        set sample-rate "deleteme"
+        set polling-interval "deleteme"
+        set sample-direction "deleteme"
+        set tcp-mss "deleteme"
+        set inbandwidth "deleteme"
+        set outbandwidth "deleteme"
+        set spillover-threshold "deleteme"
+        set ingress-spillover-threshold "deleteme"
+        set weight "deleteme"
+        set external "deleteme"
+        set description "deleteme"
+        set alias "deleteme"
+        set security-mode "deleteme"
+        set device-identification "deleteme"
+        set fortiheartbeat "deleteme"
+        set estimated-upstream-bandwidth "deleteme"
+        set estimated-downstream-bandwidth "deleteme"
+        set vrrp-virtual-mac "deleteme"
+        set snmp-index "deleteme"
+        set preserve-session-route "deleteme"
+        set auto-auth-extension-device "deleteme"
+        set ap-discover "deleteme"
+        set dhcp-client-identifier "deleteme"
+        set dhcp-renew-time "deleteme"
+        set defaultgw "deleteme"
+        set dns-server-override "deleteme"
+        set speed "deleteme"
+        set mtu-override "deleteme"
+        set wccp "deleteme"
+        set drop-overlapped-fragment "deleteme"
+        set drop-fragment "deleteme"
+        set pptp-client "deleteme"
+        set role "deleteme"
+        set ip "deleteme"
+        set icmp-redirect "deleteme"
+        set lldp-transmission "deleteme"
+        set secondary-IP "deleteme"
+        set remote-ip "deleteme"
+        set interface "deleteme"
+    next
+"@.Split([Environment]::NewLine)
+        $this.setInterfaceTemplate($Template)
+    }
+
+    #endregion
+    #region [void]setInterfaceTemplate($Path)
+    [void]setInterfaceTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateConfigObject: Load interface template from {0}' -f $Path)
+        $Template = $this.ReadTextFile($Path)
+        $this.setInterfaceTemplate($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getInterface()
+    [PSCustomObject[]]getInterface() {
+        $cInterfaces = New-Object System.Collections.ArrayList
+        if ($this.Config['global']['system interface'].count -gt 0) {
+            foreach ($Interface in $this.Config['global']['system interface'].GetEnumerator()) {
+                $oInterface = $this.InterfaceTemplate.PsObject.Copy()
+                $oInterface.name = $Interface.Name
+
+                foreach ($InterfaceOption in $Interface.Value.GetEnumerator()) {
+                    try {
+                        Write-Debug ('PSFortigateConfigObject: Adding Interface {0} Option {1}' -f $Interface.Name, $InterfaceOption.Name)
+                        $oInterface.($InterfaceOption.Name) = $InterfaceOption.Value
+                    }
+                    catch {
+                        Write-Debug ('PSFortigateConfigObject: Skipping Interface {0} Option {1} - option not found in interface template' -f $Interface.Name, $InterfaceOption.Name)
+                    }
+                }
+                $cInterfaces.Add($oInterface)
+            }
+            return $cInterfaces
+        }
+        Write-Debug ('PSFortigateConfigObject: No Interfaces found')
+        return $null
+    }
+
+    #endregion
+    #region [void]setIPsecPhase1Template([System.String[]]$Template)
+    [void]setIPsecPhase1Template(
+        [System.String[]]$Template
+    ) {
+        # Columns are displayed according to order in template
+        $Options = [Ordered]@{ vdom = $null; name = $null }
+        foreach ($Line in $Template) {
+            if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
+                $Options.add($Matches.Option, $null)
+            }
+        }
+        $this.IPsecPhase1Template = New-Object -TypeName "PSCustomObject" -Property $Options
+    }
+
+    #endregion
+    #region [void]setIPsecPhase1Template()
+    [void]setIPsecPhase1Template() {
+        Write-Debug 'PSFortigateConfigObject: Set default ipsec phase1 template'
+        $Template = @"
+    edit "deleteme"
+        set type "deleteme"
+        set interface "deleteme"
+        set ip-version "deleteme"
+        set ike-version "deleteme"
+        set local-gw "deleteme"
+        set keylife "deleteme"
+        set authmethod "deleteme"
+        set authmethod-remote "deleteme"
+        set peertype "deleteme"
+        set passive-mode "deleteme"
+        set exchange-interface-ip "deleteme"
+        set mode-cfg "deleteme"
+        set proposal "deleteme"
+        set localid "deleteme"
+        set localid-type "deleteme"
+        set auto-negotiate "deleteme"
+        set negotiate-timeout "deleteme"
+        set fragmentation "deleteme"
+        set dpd "deleteme"
+        set forticlient-enforcement "deleteme"
+        set comments "deleteme"
+        set npu-offload "deleteme"
+        set dhgrp "deleteme"
+        set suite-b "deleteme"
+        set eap "deleteme"
+        set wizard-type "deleteme"
+        set reauth "deleteme"
+        set idle-timeout "deleteme"
+        set ha-sync-esp-seqno "deleteme"
+        set auto-discovery-sender "deleteme"
+        set auto-discovery-receiver "deleteme"
+        set auto-discovery-forwarder "deleteme"
+        set encapsulation "deleteme"
+        set nattraversal "deleteme"
+        set fragmentation-mtu "deleteme"
+        set childless-ike "deleteme"
+        set rekey "deleteme"
+        set remote-gw "deleteme"
+        set monitor "deleteme"
+        set add-gw-route "deleteme"
+        set psksecret "deleteme"
+    next
+"@.Split([Environment]::NewLine)
+        $this.setIPsecPhase1Template($Template)
+    }
+
+    #endregion
+    #region [void]setIPsecPhase1Template($Path)
+    [void]setIPsecPhase1Template(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateConfigObject: Load ipsec phase1 template from {0}' -f $Path)
+        $Template = $this.ReadTextFile($Path)
+        $this.setIPsecPhase1Template($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getIPsecPhase1()
+    [PSCustomObject[]]getIPsecPhase1() {
+        $cIPsecPhase1s = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['vpn ipsec phase1-interface'].count -gt 0) {
+                    foreach ($IPsecPhase1 in $vdom.Value['vpn ipsec phase1-interface'].GetEnumerator()) {
+                        $oIPsecPhase1 = $this.IPsecPhase1Template.PsObject.Copy()
+                        $oIPsecPhase1.vdom = $vdom.Name
+                        $oIPsecPhase1.name = $IPsecPhase1.Name
+
+                        foreach ($IPsecPhase1Option in $IPsecPhase1.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} IPsec Phase1 {1} Option {2}' -f $vdom.Name, $IPsecPhase1.Name, $IPsecPhase1Option.Name)
+                                $oIPsecPhase1.($IPsecPhase1Option.Name) = $IPsecPhase1Option.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} IPSec Phase1 {1} Option {2} - option not found in ipsec phase1 template' -f $vdom.Name, $IPsecPhase1.Name, $IPsecPhase1Option.Name)
+                            }
+                        }
+                        $cIPsecPhase1s.Add($oIPsecPhase1)
+                    }
+                }
+            }
+            return $cIPsecPhase1s
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
+    }
+
+    #endregion
+    #region [void]setIPsecPhase2Template([System.String[]]$Template)
+    [void]setIPsecPhase2Template(
+        [System.String[]]$Template
+    ) {
+        # Columns are displayed according to order in template
+        $Options = [Ordered]@{ vdom = $null; name = $null }
+        foreach ($Line in $Template) {
+            if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
+                $Options.add($Matches.Option, $null)
+            }
+        }
+        $this.IPsecPhase2Template = New-Object -TypeName "PSCustomObject" -Property $Options
+    }
+
+    #endregion
+    #region [void]setIPsecPhase2Template()
+    [void]setIPsecPhase2Template() {
+        Write-Debug 'PSFortigateConfigObject: Set default ipsec phase2 template'
+        $Template = @"
+    edit "deleteme"
+        set phase1name "deleteme"
+        set proposal "deleteme"
+        set pfs "deleteme"
+        set dhgrp "deleteme"
+        set replay "deleteme"
+        set auto-negotiate "deleteme"
+        set auto-discovery-sender "deleteme"
+        set auto-discovery-forwarder "deleteme"
+        set keylife-type "deleteme"
+        set encapsulation "deleteme"
+        set comments "deleteme"
+        set protocol "deleteme"
+        set src-addr-type "deleteme"
+        set src-port "deleteme"
+        set dst-addr-type "deleteme"
+        set dst-port "deleteme"
+        set keylifeseconds "deleteme"
+        set src-name "deleteme"
+        set dst-name "deleteme"
+        set src-subnet "deleteme"
+        set dst-subnet "deleteme"
+    next
+"@.Split([Environment]::NewLine)
+        $this.setIPsecPhase2Template($Template)
+    }
+
+    #endregion
+    #region [void]setIPsecPhase2Template($Path)
+    [void]setIPsecPhase2Template(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateConfigObject: Load ipsec phase2 template from {0}' -f $Path)
+        $Template = $this.ReadTextFile($Path)
+        $this.setIPsecPhase2Template($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getIPsecPhase2()
+    [PSCustomObject[]]getIPsecPhase2() {
+        $cIPsecPhase2s = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['vpn ipsec phase2-interface'].count -gt 0) {
+                    foreach ($IPsecPhase2 in $vdom.Value['vpn ipsec phase2-interface'].GetEnumerator()) {
+                        $oIPsecPhase2 = $this.IPsecPhase2Template.PsObject.Copy()
+                        $oIPsecPhase2.vdom = $vdom.Name
+                        $oIPsecPhase2.name = $IPsecPhase2.Name
+
+                        foreach ($IPsecPhase2Option in $IPsecPhase2.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} IPsec Phase2 {1} Option {2}' -f $vdom.Name, $IPsecPhase2.Name, $IPsecPhase2Option.Name)
+                                $oIPsecPhase2.($IPsecPhase2Option.Name) = $IPsecPhase2Option.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} IPsec Phase2 {1} Option {2} - option not found in ipsec phase2 template' -f $vdom.Name, $IPsecPhase2.Name, $IPsecPhase2Option.Name)
+                            }
+                        }
+                        $cIPsecPhase2s.Add($oIPsecPhase2)
+                    }
+                }
+            }
+            return $cIPsecPhase2s
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
+    }
+
+    #endregion
+    #region [void]setSystemZoneTemplate([System.String[]]$Template)
+    [void]setSystemZoneTemplate(
+        [System.String[]]$Template
+    ) {
+        # Columns are displayed according to order in template
+        $Options = [Ordered]@{ vdom = $null; name = $null }
+        foreach ($Line in $Template) {
+            if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
+                $Options.add($Matches.Option, $null)
+            }
+        }
+        $this.SystemZoneTemplate = New-Object -TypeName "PSCustomObject" -Property $Options
+    }
+
+    #endregion
+    #region [void]setSystemZoneTemplate()
+    [void]setSystemZoneTemplate() {
+        Write-Debug 'PSFortigateConfigObject: Set default system zone template'
+        $Template = @"
+    edit "deleteme"
+        set intrazone "deleteme"
+        set interface "deleteme"
+    next
+"@.Split([Environment]::NewLine)
+        $this.setSystemZoneTemplate($Template)
+    }
+
+    #endregion
+    #region [void]setSystemZoneTemplate($Path)
+    [void]setSystemZoneTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateConfigObject: Load system zone template from {0}' -f $Path)
+        $Template = $this.ReadTextFile($Path)
+        $this.setSystemZoneTemplate($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getSystemZone()
+    [PSCustomObject[]]getSystemZone() {
+        $cSystemZones = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['system zone'].count -gt 0) {
+                    foreach ($SystemZone in $vdom.Value['system zone'].GetEnumerator()) {
+                        $oSystemZone = $this.SystemZoneTemplate.PsObject.Copy()
+                        $oSystemZone.vdom = $vdom.Name
+                        $oSystemZone.name = $SystemZone.Name
+
+                        foreach ($SystemZoneOption in $SystemZone.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} System Zone {1} Option {2}' -f $vdom.Name, $SystemZone.Name, $SystemZoneOption.Name)
+                                $oSystemZone.($SystemZoneOption.Name) = $SystemZoneOption.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} System Zone {1} Option {2} - option not found in router static template' -f $vdom.Name, $SystemZone.Name, $SystemZoneOption.Name)
+                            }
+                        }
+                        $cSystemZones.Add($oSystemZone)
+                    }
+                }
+            }
+            return $cSystemZones
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
+    }
+
+    #endregion
+    #region [void]setRouterStaticTemplate([System.String[]]$Template)
+    [void]setRouterStaticTemplate(
+        [System.String[]]$Template
+    ) {
+        # Columns are displayed according to order in template
+        $Options = [Ordered]@{ vdom = $null; name = $null }
+        foreach ($Line in $Template) {
+            if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
+                $Options.add($Matches.Option, $null)
+            }
+        }
+        $this.RouterStaticTemplate = New-Object -TypeName "PSCustomObject" -Property $Options
+    }
+
+    #endregion
+    #region [void]setRouterStaticTemplate()
+    [void]setRouterStaticTemplate() {
+        Write-Debug 'PSFortigateConfigObject: Set default router static template'
+        $Template = @"
+    edit "deleteme"
+        set status "deleteme"
+        set dst "deleteme"
+        set gateway "deleteme"
+        set distance "deleteme"
+        set weight "deleteme"
+        set priority "deleteme"
+        set device "deleteme"
+        set comment "deleteme"
+        set blackhole "deleteme"
+        set dynamic-gateway "deleteme"
+        set virtual-wan-link "deleteme"
+        set dstaddr "deleteme"
+        set internet-service "deleteme"
+        set internet-service-custom "deleteme"
+        set link-monitor-exempt "deleteme"
+    next
+"@.Split([Environment]::NewLine)
+        $this.setRouterStaticTemplate($Template)
+    }
+
+    #endregion
+    #region [void]setRouterStaticTemplate($Path)
+    [void]setRouterStaticTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateConfigObject: Load router static template from {0}' -f $Path)
+        $Template = $this.ReadTextFile($Path)
+        $this.setRouterStaticTemplate($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getRouterStatic()
+    [PSCustomObject[]]getRouterStatic() {
+        $cRouterStatics = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['router static'].count -gt 0) {
+                    foreach ($RouterStatic in $vdom.Value['router static'].GetEnumerator()) {
+                        $oRouterStatic = $this.RouterStaticTemplate.PsObject.Copy()
+                        $oRouterStatic.vdom = $vdom.Name
+                        $oRouterStatic.name = $RouterStatic.Name
+
+                        foreach ($RouterStaticOption in $RouterStatic.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} Router Static {1} Option {2}' -f $vdom.Name, $RouterStatic.Name, $RouterStaticOption.Name)
+                                $oRouterStatic.($RouterStaticOption.Name) = $RouterStaticOption.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} Router Static {1} Option {2} - option not found in router static template' -f $vdom.Name, $RouterStatic.Name, $RouterStaticOption.Name)
+                            }
+                        }
+                        $cRouterStatics.Add($oRouterStatic)
+                    }
+                }
+            }
+            return $cRouterStatics
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
+    }
+
+    #endregion
 }
 
 #endregion
@@ -941,6 +1425,11 @@ Class PSFortigateReport : PSFortigateConfigObject {
     Hidden [System.Array]$LocalUserReportTemplate
     Hidden [System.Array]$FortitokenReportTemplate
     Hidden [System.Array]$UserGroupReportTemplate
+    Hidden [System.Array]$InterfaceReportTemplate
+    Hidden [System.Array]$IPsecPhase1ReportTemplate
+    Hidden [System.Array]$IPsecPhase2ReportTemplate
+    Hidden [System.Array]$SystemZoneReportTemplate
+    Hidden [System.Array]$RouterStaticReportTemplate
 
     #endregion
     #region Constructors
@@ -957,6 +1446,11 @@ Class PSFortigateReport : PSFortigateConfigObject {
         $this.setLocalUserReportTemplate()
         $this.setFortitokenReportTemplate()
         $this.setUserGroupReportTemplate()
+        $this.setInterfaceReportTemplate()
+        $this.setIPsecPhase1ReportTemplate()
+        $this.setIPsecPhase2ReportTemplate()
+        $this.setSystemZoneReportTemplate()
+        $this.setRouterStaticReportTemplate()
     }
 
     #endregion
@@ -1370,6 +1864,263 @@ Class PSFortigateReport : PSFortigateConfigObject {
         $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
         $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
         $this.getUserGroupReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setInterfaceReportTemplate()
+    [void]setInterfaceReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default interface report template'
+        # Columns to report (in listed order)
+        $this.InterfaceReportTemplate = @(
+            "vdom",
+            "name",
+            "status",
+            "type",
+            "interface",
+            "ip",
+            "description"
+        )
+    }
+
+    #endregion
+    #region [void]setInterfaceReportTemplate($Path)
+    [void]setInterfaceReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load interface report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.InterfaceReportTemplate = $Template
+    }
+
+    #endregion
+    #region getInterfaceReport()
+    [PsCustomObject[]]getInterfaceReport() {
+        return $this.getInterface() | Select-Object -Property $this.InterfaceReportTemplate
+    }
+
+    #endregion
+    #region saveInterfaceReport($Path)
+    [void]saveInterfaceReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getInterfaceReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setInterfaceReportTemplate()
+    [void]setIPsecPhase1ReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default ipsec phase1 report template'
+        # Columns to report (in listed order)
+        $this.IPsecPhase1ReportTemplate = @(
+            "vdom",
+            "name",
+            "interface",
+            "remote-gw",
+            "nattraversal",
+            "ike-version",
+            "keylife",
+            "proposal",
+            "dpd",
+            "dhgrp",
+            "comments"
+        )
+    }
+
+    #endregion
+    #region [void]setIPsecPhase1ReportTemplate($Path)
+    [void]setIPsecPhase1ReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load ipsec phase1 report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.IPsecPhase1ReportTemplate = $Template
+    }
+
+    #endregion
+    #region getIPsecPhase1Report()
+    [PsCustomObject[]]getIPsecPhase1Report() {
+        return $this.getIPsecPhase1() | Select-Object -Property $this.IPsecPhase1ReportTemplate
+    }
+
+    #endregion
+    #region saveIPsecPhase1Report($Path)
+    [void]saveIPsecPhase1Report(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getIPsecPhase1Report() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setIPsecPhase2ReportTemplate()
+    [void]setIPsecPhase2ReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default ipsec phase2 report template'
+        # Columns to report (in listed order)
+        $this.IPsecPhase2ReportTemplate = @(
+            "vdom",
+            "name",
+            "phase1name",
+            "keylifeseconds",
+            "proposal",
+            @{Name="dhgrp"; Expression={
+                if ($_."dhgrp".length -gt 0) { $out = [array]$out + $_."dhgrp" };
+                if ($_."pfs".length -gt 0) { $out = [array]$out + ("pfs {0}" -f $_."pfs") };
+                $out -join [char]10 }},
+            @{Name="src"; Expression={
+                if ($_."src-name".length -gt 0) { $out = [array]$out + $_."src-name" };
+                if ($_."src-subnet".length -gt 0) { $out = [array]$out + $_."src-subnet" };
+                $out -join [char]10 }},
+            @{Name="dst"; Expression={
+                if ($_."dst-name".length -gt 0) { $out = [array]$out + $_."dst-name" };
+                if ($_."dst-subnet".length -gt 0) { $out = [array]$out + $_."dst-subnet" };
+                $out -join [char]10 }},
+            "comments"
+        )
+    }
+
+    #endregion
+    #region [void]setIPsecPhase2ReportTemplate($Path)
+    [void]setIPsecPhase2ReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load ipsec phase2 report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.IPsecPhase2ReportTemplate = $Template
+    }
+
+    #endregion
+    #region getIPsecPhase2Report()
+    [PsCustomObject[]]getIPsecPhase2Report() {
+        return $this.getIPsecPhase2() | Select-Object -Property $this.IPsecPhase2ReportTemplate
+    }
+
+    #endregion
+    #region saveIPsecPhase2Report($Path)
+    [void]saveIPsecPhase2Report(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getIPsecPhase2Report() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setSystemZoneReportTemplate()
+    [void]setSystemZoneReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default system zone report template'
+        # Columns to report (in listed order)
+        $this.SystemZoneReportTemplate = @(
+            "vdom",
+            "name",
+            "intrazone",
+            @{Name="interface"; Expression={ ([array]$_.interface) -join [char]10 }}
+        )
+        
+    }
+
+    #endregion
+    #region [void]setSystemZoneReportTemplate($Path)
+    [void]setSystemZoneReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load system zone report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.SystemZoneReportTemplate = $Template
+    }
+
+    #endregion
+    #region getSystemZoneReport()
+    [PsCustomObject[]]getSystemZoneReport() {
+        return $this.getSystemZone() | Select-Object -Property $this.SystemZoneReportTemplate
+    }
+
+    #endregion
+    #region saveSystemZoneReport($Path)
+    [void]saveSystemZoneReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getSystemZoneReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+    #region [void]setRouterStaticReportTemplate()
+    [void]setRouterStaticReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default router static report template'
+        # Columns to report (in listed order)
+        $this.RouterStaticReportTemplate = @(
+            "vdom",
+            "name",
+            "status",
+            @{Name="dst"; Expression={
+                if ($_."dst".length -gt 0) { $out = [array]$out + $_."dst" };
+                if ($_."dstaddr".length -gt 0) { $out = [array]$out + $_."dstaddr" };
+                $out -join [char]10 }},
+            "gateway",
+            "device",
+            "blackhole",
+            "comment"
+        )
+    }
+
+    #endregion
+    #region [void]setRouterStaticReportTemplate($Path)
+    [void]setRouterStaticReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load router static report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.RouterStaticReportTemplate = $Template
+    }
+
+    #endregion
+    #region getRouterStaticReport()
+    [PsCustomObject[]]getRouterStaticReport() {
+        return $this.getRouterStatic() | Select-Object -Property $this.RouterStaticReportTemplate
+    }
+
+    #endregion
+    #region saveRouterStaticReport($Path)
+    [void]saveRouterStaticReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getRouterStaticReport() | `
             ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
             ForEach-Object { $StreamWriter.WriteLine($_) }
         $StreamWriter.Close()
