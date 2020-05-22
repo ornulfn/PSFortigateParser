@@ -1,4 +1,4 @@
-﻿#Generated at 2020-03-05 10:03 by Ørnulf Nielsen
+﻿#Generated at 2020-05-22 20:35 by Ørnulf Nielsen
 #region Class PSFortigateConfig : System.IDisposable
 Class PSFortigateConfig : System.IDisposable {
     #region Properties
@@ -121,7 +121,7 @@ Class PSFortigateConfig : System.IDisposable {
             if ($sLine -match "^\s*(?<type>config|edit)\s+(?<section>.*)\s*$") {
                 if ($Matches.type -eq 'config') {
                     Write-Debug ('PSFortigateConfig: Found config section {0}' -f $Matches.section)
-                    if ($Matches.section -eq "firewall policy") {
+                    if ($Matches.section -eq "firewall policy" -or $Matches.section -eq "firewall proxy-policy" ) {
                         $this.inPolicySection = $true
                         $this.PolicySequence = 0
                     } elseif ($Matches.section -eq "firewall service custom") {
@@ -155,12 +155,12 @@ Class PSFortigateConfig : System.IDisposable {
                 $PropertyKey = $Matches.Key -replace "`"",""
 
                 # Inject sequence number for firewall policy
-                if ($PropertyKey -eq "name" -and $this.inPolicySection) {
+                if ($PropertyKey -eq "uuid" -and $this.inPolicySection) {
                     $Section['sequence'] = $this.PolicySequence
                 }
 
                 # Remove double quotes - use array if multi-valued
-                if ($this.inServiceSection -and $PropertyKey -like "*-portrange") {
+                if (($this.inServiceSection -and $PropertyKey -like "*-portrange") -or ($this.inPolicySection -and $PropertyKey -like "internet-service-id")) {
                     $PropertyValue = $Matches.Value -split "\s+"
                     if ($PropertyValue.Count -eq 1) {
                         $PropertyValue = $PropertyValue -as [System.String]
@@ -188,6 +188,7 @@ Class PSFortigateConfig : System.IDisposable {
 Class PSFortigateConfigObject : PSFortigateConfig {
     #region Properties
     Hidden [PSCustomObject]$PolicyTemplate
+    Hidden [PSCustomObject]$ProxyPolicyTemplate
     Hidden [PSCustomObject]$AddressTemplate
     Hidden [PSCustomObject]$AddressGroupTemplate
     Hidden [PSCustomObject]$ServiceTemplate
@@ -209,6 +210,7 @@ Class PSFortigateConfigObject : PSFortigateConfig {
         ([PSFortigateConfig]$this).Constructor()
         # Setup default templates
         $this.setPolicyTemplate()
+        $this.setProxyPolicyTemplate()
         $this.setAddressTemplate()
         $this.setAddressGroupTemplate()
         $this.setServiceTemplate()
@@ -363,7 +365,6 @@ Class PSFortigateConfigObject : PSFortigateConfig {
                         $oPolicy = $this.PolicyTemplate.PsObject.Copy()
                         $oPolicy.vdom = $vdom.Name
                         $oPolicy.policyid = $Policy.Name
-#                        $oPolicy.sequence = $Policy.Name
 
                         foreach ($PolicyOption in $Policy.Value.GetEnumerator()) {
                             try {
@@ -380,7 +381,26 @@ Class PSFortigateConfigObject : PSFortigateConfig {
             }
             return $cPolicies
         }
-        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        elseif ($this.Config['firewall policy'].count -gt 0) {
+            foreach ($Policy in $this.Config['firewall policy'].GetEnumerator()) {
+                $oPolicy = $this.PolicyTemplate.PsObject.Copy()
+                $oPolicy.vdom = ""
+                $oPolicy.policyid = $Policy.Name
+
+                foreach ($PolicyOption in $Policy.Value.GetEnumerator()) {
+                    try {
+                        Write-Debug ('PSFortigateConfigObject: Adding vDom {0} Policy {1} Option {2}' -f "No vDom", $Policy.Name, $PolicyOption.Name)
+                        $oPolicy.($PolicyOption.Name) = $PolicyOption.Value
+                    }
+                    catch {
+                        Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} Address {1} Option {2} - option not found in policy template' -f "No vDom", $Policy.Name, $PolicyOption.Name)
+                    }
+                }
+                $cPolicies.Add($oPolicy)
+            }
+            return $cPolicies
+        }
+        Write-Debug ('PSFortigateConfigObject: No firewall policy found')
         return $null
     }
 
@@ -1022,6 +1042,7 @@ Class PSFortigateConfigObject : PSFortigateConfig {
         set secondary-IP "deleteme"
         set remote-ip "deleteme"
         set interface "deleteme"
+        set explicit-web-proxy "deleteme"
     next
 "@.Split([Environment]::NewLine)
         $this.setInterfaceTemplate($Template)
@@ -1411,6 +1432,85 @@ Class PSFortigateConfigObject : PSFortigateConfig {
     }
 
     #endregion
+    #region [void]setProxyPolicyTemplate([System.String[]]$Template)
+    [void]setProxyPolicyTemplate(
+        [System.String[]]$Template
+    ) {
+        # Columns are displayed according to order in template
+        $Options = [Ordered]@{ vdom = $null; sequence = $null ; policyid = $null }
+        foreach ($Line in $Template) {
+            if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
+                $Options.add($Matches.Option, $null)
+            }
+        }
+        $this.ProxyPolicyTemplate = New-Object -TypeName "PSCustomObject" -Property $Options
+    }
+
+    #endregion
+    #region [void]setProxyPolicyTemplate()
+    [void]setProxyPolicyTemplate() {
+        Write-Debug 'PSFortigateConfigObject: Set default proxy policy template'
+        $Template = @"
+    edit "deleteme"
+        set status "deleteme"
+        set proxy "deleteme"
+        set dstintf "deleteme"
+        set srcaddr "deleteme"
+        set dstaddr "deleteme"
+        set internet-service "deleteme"
+        set internet-service-id "deleteme"
+        set service "deleteme"
+        set action "deleteme"
+        set schedule "deleteme"
+        set logtraffic "deleteme"
+        set logtraffic-start "deleteme"
+    next
+"@.Split([Environment]::NewLine)
+        $this.setProxyPolicyTemplate($Template)
+    }
+
+    #endregion
+    #region [void]setProxyPolicyTemplate($Path)
+    [void]setProxyPolicyTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateConfigObject: Load proxy policy template from {0}' -f $Path)
+        $Template = $this.ReadTextFile($Path)
+        $this.setProxyPolicyTemplate($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getProxyPolicy()
+    [PSCustomObject[]]getProxyPolicy() {
+        $cProxyPolicys = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['firewall proxy-policy'].count -gt 0) {
+                    foreach ($ProxyPolicy in $vdom.Value['firewall proxy-policy'].GetEnumerator()) {
+                        $oProxyPolicy = $this.ProxyPolicyTemplate.PsObject.Copy()
+                        $oProxyPolicy.vdom = $vdom.Name
+                        $oProxyPolicy.policyid = $ProxyPolicy.Name
+
+                        foreach ($ProxyPolicyOption in $ProxyPolicy.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} Proxy Policy {1} Option {2}' -f $vdom.Name, $ProxyPolicy.Name, $ProxyPolicyOption.Name)
+                                $oProxyPolicy.($ProxyPolicyOption.Name) = $ProxyPolicyOption.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} Proxy Policy {1} Option {2} - option not found in proxy policy template' -f $vdom.Name, $ProxyPolicy.Name, $ProxyPolicyOption.Name)
+                            }
+                        }
+                        $cProxyPolicys.Add($oProxyPolicy)
+                    }
+                }
+            }
+            return $cProxyPolicys
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
+    }
+
+    #endregion
 }
 
 #endregion
@@ -1418,6 +1518,7 @@ Class PSFortigateConfigObject : PSFortigateConfig {
 Class PSFortigateReport : PSFortigateConfigObject {
     #region Properties
     Hidden [System.Array]$PolicyReportTemplate
+    Hidden [System.Array]$ProxyPolicyReportTemplate
     Hidden [System.Array]$AddressReportTemplate
     Hidden [System.Array]$AddressGroupReportTemplate
     Hidden [System.Array]$ServiceReportTemplate
@@ -1439,6 +1540,7 @@ Class PSFortigateReport : PSFortigateConfigObject {
         ([PSFortigateConfigObject]$this).Constructor()
         # Setup default templates
         $this.setPolicyReportTemplate()
+        $this.setProxyPolicyReportTemplate()
         $this.setAddressReportTemplate()
         $this.setAddressGroupReportTemplate()
         $this.setServiceReportTemplate()
@@ -1497,7 +1599,26 @@ Class PSFortigateReport : PSFortigateConfigObject {
             "nat", 
             @{Name="service"; Expression={ ([array]$_.service) -join [char]10 }},
             "action", 
-            "logtraffic", 
+            @{Name="logtraffic"; Expression={
+                $out = $_."logtraffic"
+                if ($null -ne $_."logtraffic-start" -and $_."logtraffic-start".ToLower() -eq "enable") { $out = [array]$out + "at session start" };
+                if ($null -ne $_."capture-packet" -and $_."capture-packet".ToLower() -eq "enable") { $out = [array]$out + "capture packet" };
+                $out -join [char]10 }},
+            @{Name="securityprofile"; Expression={
+                $out = $null
+                if ($null -ne $_."av-profile" -and $_."av-profile".length -gt 0) { $out = [array]$out + ("AV: {0}" -f $_."av-profile") };
+                if ($null -ne $_."webfilter-profile" -and $_."webfilter-profile".length -gt 0) { $out = [array]$out + ("Web: {0}" -f $_."webfilter-profile") };
+                if ($null -ne $_."dnsfilter-profile" -and $_."dnsfilter-profile".length -gt 0) { $out = [array]$out + ("DNS: {0}" -f $_."dnsfilter-profile") };
+                if ($null -ne $_."spamfilter-profile" -and $_."spamfilter-profile".length -gt 0) { $out = [array]$out + ("Spam: {0}" -f $_."spamfilter-profile") };
+                if ($null -ne $_."dlp-sensor" -and $_."dlp-sensor".length -gt 0) { $out = [array]$out + ("DLP: {0}" -f $_."dlp-sensor") };
+                if ($null -ne $_."ips-sensor" -and $_."ips-sensor".length -gt 0) { $out = [array]$out + ("IPS: {0}" -f $_."ips-sensor") };
+                if ($null -ne $_."application-list" -and $_."application-list".length -gt 0) { $out = [array]$out + ("App: {0}" -f $_."application-list") };
+                if ($null -ne $_."voip-profile" -and $_."voip-profile".length -gt 0) { $out = [array]$out + ("VoIP: {0}" -f $_."voip-profile") };
+                if ($null -ne $_."icap-profile" -and $_."icap-profile".length -gt 0) { $out = [array]$out + ("ICAP: {0}" -f $_."icap-profile") };
+                if ($null -ne $_."waf-profile" -and $_."waf-profile".length -gt 0) { $out = [array]$out + ("WAF: {0}" -f $_."waf-profile") };
+                if ($null -ne $_."profile-protocol-options" -and $_."profile-protocol-options".length -gt 0) { $out = [array]$out + ("Protocol: {0}" -f $_."profile-protocol-options") };
+                if ($null -ne $_."ssl-ssh-profile" -and $_."ssl-ssh-profile".length -gt 0) { $out = [array]$out + ("SSL/SSH: {0}" -f $_."ssl-ssh-profile") };
+                $out -join [char]10 }},
             "schedule",
             "comments"
         )
@@ -1884,6 +2005,7 @@ Class PSFortigateReport : PSFortigateConfigObject {
             "type",
             "interface",
             "ip",
+            @{Name="webproxy"; Expression={ $_."explicit-web-proxy" }},
             "description"
         )
     }
@@ -2121,6 +2243,74 @@ Class PSFortigateReport : PSFortigateConfigObject {
         $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
         $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
         $this.getRouterStaticReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+
+    #region [void]setProxyPolicyReportTemplate()
+    [void]setProxyPolicyReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default policy report template'
+        # Columns to report (in listed order)
+        #   - merge users and groups to srcaddr
+        #   - use LF as separator for multi valued fields (suitable for CSV)
+        $this.ProxyPolicyReportTemplate = @(
+            "vdom", 
+            "sequence", 
+            "policyid", 
+            "status", 
+            @{Name="srcaddr"; Expression={
+                $out = $_.srcaddr; 
+                if ($_.users.length -gt 0) { $out = [array]$out + $_.users };
+                if ($_.groups.length -gt 0) { $out = [array]$out + $_.groups };
+                $out -join [char]10 }},
+            @{Name="dstintf"; Expression={ ([array]$_.dstintf) -join [char]10 }},
+            @{Name="dstaddr"; Expression={ ([array]$_.dstaddr) -join [char]10 }},
+            @{Name="service"; Expression={
+                $out = $_."service"
+                if ($null -ne $_."internet-service-id" -and $_."internet-service-id".length -gt 0) { $out = [array]$out + ([array]$_."internet-service-id" | ForEach-Object { "Inet ID: {0}" -f $_ }) -join [char]10 };
+                $out -join [char]10 }},
+            "action", 
+            @{Name="logtraffic"; Expression={
+                $out = $_."logtraffic"
+                if ($null -ne $_."logtraffic-start" -and $_."logtraffic-start".ToLower() -eq "enable") { $out = [array]$out + "at session start" };
+                if ($null -ne $_."capture-packet" -and $_."capture-packet".ToLower() -eq "enable") { $out = [array]$out + "capture packet" };
+                $out -join [char]10 }},
+            "proxy",
+            "schedule",
+            "comments"
+        )
+    }
+
+    #endregion
+    #region [void]setProxyPolicyReportTemplate($Path)
+    [void]setProxyPolicyReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load policy report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.ProxyPolicyReportTemplate = $Template
+    }
+
+    #endregion
+    #region getProxyPolicyReport()
+    [PsCustomObject[]]getProxyPolicyReport() {
+        return $this.getProxyPolicy() | Sort-Object -Property "vdom","sequence" | Select-Object -Property $this.ProxyPolicyReportTemplate
+    }
+
+    #endregion
+    #region saveProxyPolicyReport($Path)
+    [void]saveProxyPolicyReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getProxyPolicyReport() | `
             ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
             ForEach-Object { $StreamWriter.WriteLine($_) }
         $StreamWriter.Close()

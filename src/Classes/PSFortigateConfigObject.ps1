@@ -2,6 +2,7 @@
 Class PSFortigateConfigObject : PSFortigateConfig {
     #region Properties
     Hidden [PSCustomObject]$PolicyTemplate
+    Hidden [PSCustomObject]$ProxyPolicyTemplate
     Hidden [PSCustomObject]$AddressTemplate
     Hidden [PSCustomObject]$AddressGroupTemplate
     Hidden [PSCustomObject]$ServiceTemplate
@@ -23,6 +24,7 @@ Class PSFortigateConfigObject : PSFortigateConfig {
         ([PSFortigateConfig]$this).Constructor()
         # Setup default templates
         $this.setPolicyTemplate()
+        $this.setProxyPolicyTemplate()
         $this.setAddressTemplate()
         $this.setAddressGroupTemplate()
         $this.setServiceTemplate()
@@ -177,7 +179,6 @@ Class PSFortigateConfigObject : PSFortigateConfig {
                         $oPolicy = $this.PolicyTemplate.PsObject.Copy()
                         $oPolicy.vdom = $vdom.Name
                         $oPolicy.policyid = $Policy.Name
-#                        $oPolicy.sequence = $Policy.Name
 
                         foreach ($PolicyOption in $Policy.Value.GetEnumerator()) {
                             try {
@@ -194,7 +195,26 @@ Class PSFortigateConfigObject : PSFortigateConfig {
             }
             return $cPolicies
         }
-        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        elseif ($this.Config['firewall policy'].count -gt 0) {
+            foreach ($Policy in $this.Config['firewall policy'].GetEnumerator()) {
+                $oPolicy = $this.PolicyTemplate.PsObject.Copy()
+                $oPolicy.vdom = ""
+                $oPolicy.policyid = $Policy.Name
+
+                foreach ($PolicyOption in $Policy.Value.GetEnumerator()) {
+                    try {
+                        Write-Debug ('PSFortigateConfigObject: Adding vDom {0} Policy {1} Option {2}' -f "No vDom", $Policy.Name, $PolicyOption.Name)
+                        $oPolicy.($PolicyOption.Name) = $PolicyOption.Value
+                    }
+                    catch {
+                        Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} Address {1} Option {2} - option not found in policy template' -f "No vDom", $Policy.Name, $PolicyOption.Name)
+                    }
+                }
+                $cPolicies.Add($oPolicy)
+            }
+            return $cPolicies
+        }
+        Write-Debug ('PSFortigateConfigObject: No firewall policy found')
         return $null
     }
 
@@ -836,6 +856,7 @@ Class PSFortigateConfigObject : PSFortigateConfig {
         set secondary-IP "deleteme"
         set remote-ip "deleteme"
         set interface "deleteme"
+        set explicit-web-proxy "deleteme"
     next
 "@.Split([Environment]::NewLine)
         $this.setInterfaceTemplate($Template)
@@ -1219,6 +1240,85 @@ Class PSFortigateConfigObject : PSFortigateConfig {
                 }
             }
             return $cRouterStatics
+        }
+        Write-Debug ('PSFortigateConfigObject: No vDom found')
+        return $null
+    }
+
+    #endregion
+    #region [void]setProxyPolicyTemplate([System.String[]]$Template)
+    [void]setProxyPolicyTemplate(
+        [System.String[]]$Template
+    ) {
+        # Columns are displayed according to order in template
+        $Options = [Ordered]@{ vdom = $null; sequence = $null ; policyid = $null }
+        foreach ($Line in $Template) {
+            if ($Line -match "^(\s*)set (?<Option>[^\s]+)\s+(?<Value>.*)$") {
+                $Options.add($Matches.Option, $null)
+            }
+        }
+        $this.ProxyPolicyTemplate = New-Object -TypeName "PSCustomObject" -Property $Options
+    }
+
+    #endregion
+    #region [void]setProxyPolicyTemplate()
+    [void]setProxyPolicyTemplate() {
+        Write-Debug 'PSFortigateConfigObject: Set default proxy policy template'
+        $Template = @"
+    edit "deleteme"
+        set status "deleteme"
+        set proxy "deleteme"
+        set dstintf "deleteme"
+        set srcaddr "deleteme"
+        set dstaddr "deleteme"
+        set internet-service "deleteme"
+        set internet-service-id "deleteme"
+        set service "deleteme"
+        set action "deleteme"
+        set schedule "deleteme"
+        set logtraffic "deleteme"
+        set logtraffic-start "deleteme"
+    next
+"@.Split([Environment]::NewLine)
+        $this.setProxyPolicyTemplate($Template)
+    }
+
+    #endregion
+    #region [void]setProxyPolicyTemplate($Path)
+    [void]setProxyPolicyTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateConfigObject: Load proxy policy template from {0}' -f $Path)
+        $Template = $this.ReadTextFile($Path)
+        $this.setProxyPolicyTemplate($Template)
+    }
+
+    #endregion
+    #region [PSCustomObject[]]getProxyPolicy()
+    [PSCustomObject[]]getProxyPolicy() {
+        $cProxyPolicys = New-Object System.Collections.ArrayList
+        if ($this.Config['vdom'].count -gt 0) {
+            foreach ($vdom in $this.Config['vdom'].GetEnumerator()) {
+                if ($vdom.Value['firewall proxy-policy'].count -gt 0) {
+                    foreach ($ProxyPolicy in $vdom.Value['firewall proxy-policy'].GetEnumerator()) {
+                        $oProxyPolicy = $this.ProxyPolicyTemplate.PsObject.Copy()
+                        $oProxyPolicy.vdom = $vdom.Name
+                        $oProxyPolicy.policyid = $ProxyPolicy.Name
+
+                        foreach ($ProxyPolicyOption in $ProxyPolicy.Value.GetEnumerator()) {
+                            try {
+                                Write-Debug ('PSFortigateConfigObject: Adding vDom {0} Proxy Policy {1} Option {2}' -f $vdom.Name, $ProxyPolicy.Name, $ProxyPolicyOption.Name)
+                                $oProxyPolicy.($ProxyPolicyOption.Name) = $ProxyPolicyOption.Value
+                            }
+                            catch {
+                                Write-Debug ('PSFortigateConfigObject: Skipping vDom {0} Proxy Policy {1} Option {2} - option not found in proxy policy template' -f $vdom.Name, $ProxyPolicy.Name, $ProxyPolicyOption.Name)
+                            }
+                        }
+                        $cProxyPolicys.Add($oProxyPolicy)
+                    }
+                }
+            }
+            return $cProxyPolicys
         }
         Write-Debug ('PSFortigateConfigObject: No vDom found')
         return $null

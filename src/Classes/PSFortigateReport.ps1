@@ -2,6 +2,7 @@
 Class PSFortigateReport : PSFortigateConfigObject {
     #region Properties
     Hidden [System.Array]$PolicyReportTemplate
+    Hidden [System.Array]$ProxyPolicyReportTemplate
     Hidden [System.Array]$AddressReportTemplate
     Hidden [System.Array]$AddressGroupReportTemplate
     Hidden [System.Array]$ServiceReportTemplate
@@ -23,6 +24,7 @@ Class PSFortigateReport : PSFortigateConfigObject {
         ([PSFortigateConfigObject]$this).Constructor()
         # Setup default templates
         $this.setPolicyReportTemplate()
+        $this.setProxyPolicyReportTemplate()
         $this.setAddressReportTemplate()
         $this.setAddressGroupReportTemplate()
         $this.setServiceReportTemplate()
@@ -81,7 +83,26 @@ Class PSFortigateReport : PSFortigateConfigObject {
             "nat", 
             @{Name="service"; Expression={ ([array]$_.service) -join [char]10 }},
             "action", 
-            "logtraffic", 
+            @{Name="logtraffic"; Expression={
+                $out = $_."logtraffic"
+                if ($null -ne $_."logtraffic-start" -and $_."logtraffic-start".ToLower() -eq "enable") { $out = [array]$out + "at session start" };
+                if ($null -ne $_."capture-packet" -and $_."capture-packet".ToLower() -eq "enable") { $out = [array]$out + "capture packet" };
+                $out -join [char]10 }},
+            @{Name="securityprofile"; Expression={
+                $out = $null
+                if ($null -ne $_."av-profile" -and $_."av-profile".length -gt 0) { $out = [array]$out + ("AV: {0}" -f $_."av-profile") };
+                if ($null -ne $_."webfilter-profile" -and $_."webfilter-profile".length -gt 0) { $out = [array]$out + ("Web: {0}" -f $_."webfilter-profile") };
+                if ($null -ne $_."dnsfilter-profile" -and $_."dnsfilter-profile".length -gt 0) { $out = [array]$out + ("DNS: {0}" -f $_."dnsfilter-profile") };
+                if ($null -ne $_."spamfilter-profile" -and $_."spamfilter-profile".length -gt 0) { $out = [array]$out + ("Spam: {0}" -f $_."spamfilter-profile") };
+                if ($null -ne $_."dlp-sensor" -and $_."dlp-sensor".length -gt 0) { $out = [array]$out + ("DLP: {0}" -f $_."dlp-sensor") };
+                if ($null -ne $_."ips-sensor" -and $_."ips-sensor".length -gt 0) { $out = [array]$out + ("IPS: {0}" -f $_."ips-sensor") };
+                if ($null -ne $_."application-list" -and $_."application-list".length -gt 0) { $out = [array]$out + ("App: {0}" -f $_."application-list") };
+                if ($null -ne $_."voip-profile" -and $_."voip-profile".length -gt 0) { $out = [array]$out + ("VoIP: {0}" -f $_."voip-profile") };
+                if ($null -ne $_."icap-profile" -and $_."icap-profile".length -gt 0) { $out = [array]$out + ("ICAP: {0}" -f $_."icap-profile") };
+                if ($null -ne $_."waf-profile" -and $_."waf-profile".length -gt 0) { $out = [array]$out + ("WAF: {0}" -f $_."waf-profile") };
+                if ($null -ne $_."profile-protocol-options" -and $_."profile-protocol-options".length -gt 0) { $out = [array]$out + ("Protocol: {0}" -f $_."profile-protocol-options") };
+                if ($null -ne $_."ssl-ssh-profile" -and $_."ssl-ssh-profile".length -gt 0) { $out = [array]$out + ("SSL/SSH: {0}" -f $_."ssl-ssh-profile") };
+                $out -join [char]10 }},
             "schedule",
             "comments"
         )
@@ -468,6 +489,7 @@ Class PSFortigateReport : PSFortigateConfigObject {
             "type",
             "interface",
             "ip",
+            @{Name="webproxy"; Expression={ $_."explicit-web-proxy" }},
             "description"
         )
     }
@@ -705,6 +727,74 @@ Class PSFortigateReport : PSFortigateConfigObject {
         $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
         $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
         $this.getRouterStaticReport() | `
+            ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
+            ForEach-Object { $StreamWriter.WriteLine($_) }
+        $StreamWriter.Close()
+        $StreamWriter.Dispose()
+        $FileStream.Close()
+        $FileStream.Dispose()
+    }
+
+    #endregion
+
+    #region [void]setProxyPolicyReportTemplate()
+    [void]setProxyPolicyReportTemplate() {
+        Write-Debug 'PSFortigateReport: Set default policy report template'
+        # Columns to report (in listed order)
+        #   - merge users and groups to srcaddr
+        #   - use LF as separator for multi valued fields (suitable for CSV)
+        $this.ProxyPolicyReportTemplate = @(
+            "vdom", 
+            "sequence", 
+            "policyid", 
+            "status", 
+            @{Name="srcaddr"; Expression={
+                $out = $_.srcaddr; 
+                if ($_.users.length -gt 0) { $out = [array]$out + $_.users };
+                if ($_.groups.length -gt 0) { $out = [array]$out + $_.groups };
+                $out -join [char]10 }},
+            @{Name="dstintf"; Expression={ ([array]$_.dstintf) -join [char]10 }},
+            @{Name="dstaddr"; Expression={ ([array]$_.dstaddr) -join [char]10 }},
+            @{Name="service"; Expression={
+                $out = $_."service"
+                if ($null -ne $_."internet-service-id" -and $_."internet-service-id".length -gt 0) { $out = [array]$out + ([array]$_."internet-service-id" | ForEach-Object { "Inet ID: {0}" -f $_ }) -join [char]10 };
+                $out -join [char]10 }},
+            "action", 
+            @{Name="logtraffic"; Expression={
+                $out = $_."logtraffic"
+                if ($null -ne $_."logtraffic-start" -and $_."logtraffic-start".ToLower() -eq "enable") { $out = [array]$out + "at session start" };
+                if ($null -ne $_."capture-packet" -and $_."capture-packet".ToLower() -eq "enable") { $out = [array]$out + "capture packet" };
+                $out -join [char]10 }},
+            "proxy",
+            "schedule",
+            "comments"
+        )
+    }
+
+    #endregion
+    #region [void]setProxyPolicyReportTemplate($Path)
+    [void]setProxyPolicyReportTemplate(
+            [System.String]$Path
+    ) {
+        Write-Debug ('PSFortigateReport: Load policy report template from {0}' -f $Path)
+        $Template = Invoke-Command -ScriptBlock ([scriptblock]::Create(($this.ReadTextFile($Path))))
+        $this.ProxyPolicyReportTemplate = $Template
+    }
+
+    #endregion
+    #region getProxyPolicyReport()
+    [PsCustomObject[]]getProxyPolicyReport() {
+        return $this.getProxyPolicy() | Sort-Object -Property "vdom","sequence" | Select-Object -Property $this.ProxyPolicyReportTemplate
+    }
+
+    #endregion
+    #region saveProxyPolicyReport($Path)
+    [void]saveProxyPolicyReport(
+        [System.String]$Path
+    ) {
+        $FileStream = New-Object -TypeName System.IO.FileStream -ArgumentList $Path, ([System.IO.FileMode]::CreateNew), ([System.IO.FileAccess]::Write), ([System.IO.FileShare]::Write)
+        $StreamWriter = New-Object -TypeName System.IO.StreamWriter -ArgumentList $FileStream, $this.Encoding
+        $this.getProxyPolicyReport() | `
             ConvertTo-Csv -NoTypeInformation -Delimiter (Get-Culture).TextInfo.ListSeparator | `
             ForEach-Object { $StreamWriter.WriteLine($_) }
         $StreamWriter.Close()

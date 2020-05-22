@@ -120,7 +120,7 @@ Class PSFortigateConfig : System.IDisposable {
             if ($sLine -match "^\s*(?<type>config|edit)\s+(?<section>.*)\s*$") {
                 if ($Matches.type -eq 'config') {
                     Write-Debug ('PSFortigateConfig: Found config section {0}' -f $Matches.section)
-                    if ($Matches.section -eq "firewall policy") {
+                    if ($Matches.section -eq "firewall policy" -or $Matches.section -eq "firewall proxy-policy" ) {
                         $this.inPolicySection = $true
                         $this.PolicySequence = 0
                     } elseif ($Matches.section -eq "firewall service custom") {
@@ -154,12 +154,12 @@ Class PSFortigateConfig : System.IDisposable {
                 $PropertyKey = $Matches.Key -replace "`"",""
 
                 # Inject sequence number for firewall policy
-                if ($PropertyKey -eq "name" -and $this.inPolicySection) {
+                if ($PropertyKey -eq "uuid" -and $this.inPolicySection) {
                     $Section['sequence'] = $this.PolicySequence
                 }
 
                 # Remove double quotes - use array if multi-valued
-                if ($this.inServiceSection -and $PropertyKey -like "*-portrange") {
+                if (($this.inServiceSection -and $PropertyKey -like "*-portrange") -or ($this.inPolicySection -and $PropertyKey -like "internet-service-id")) {
                     $PropertyValue = $Matches.Value -split "\s+"
                     if ($PropertyValue.Count -eq 1) {
                         $PropertyValue = $PropertyValue -as [System.String]
